@@ -1,8 +1,12 @@
+import AddTask from './components/AddTask';
+import TaskList from './components/TaskList';
+
 function App() {
   return (
     <div>
       <h1>Task Manager</h1>
-      <p>Let’s build this thing, step by step.</p>
+      <AddTask />
+      <TaskList />
     </div>
   );
 }
