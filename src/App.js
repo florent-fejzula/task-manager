@@ -1,4 +1,3 @@
-import AddTask from "./components/AddTask";
 import TaskList from "./components/TaskList";
 import { useState } from "react";
 
@@ -17,8 +16,6 @@ function App() {
             Stay on top of your goals, one task at a time.
           </p>
         </header>
-
-        <AddTask onTaskAdded={() => setTriggerFetch((prev) => !prev)} />
 
         <div className="mt-10">
           <TaskList triggerFetch={triggerFetch} />

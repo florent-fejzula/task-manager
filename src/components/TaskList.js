@@ -7,11 +7,15 @@ import {
   getDocs,
   query,
   orderBy,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 function TaskList({ triggerFetch }) {
   const [tasks, setTasks] = useState([]);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
 
   const grouped = {
     todo: [],
@@ -87,6 +91,35 @@ function TaskList({ triggerFetch }) {
     }
   };
 
+  const addTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    try {
+      const docRef = await addDoc(collection(db, "tasks"), {
+        title: newTaskTitle,
+        status: "todo",
+        createdAt: serverTimestamp(),
+        subTasks: [],
+      });
+
+      setNewTaskTitle("");
+      setShowAddTask(false);
+      setTasks((prev) => [
+        {
+          id: docRef.id,
+          title: newTaskTitle,
+          status: "todo",
+          subTasks: [],
+          createdAt: new Date(),
+        },
+        ...prev,
+      ]);
+    } catch (err) {
+      console.error("Error adding task:", err);
+    }
+  };
+
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -105,132 +138,139 @@ function TaskList({ triggerFetch }) {
     fetchTasks();
   }, [triggerFetch]);
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "todo":
+        return "text-gray-500";
+      case "in-progress":
+        return "text-yellow-500";
+      case "done":
+        return "text-green-600";
+      default:
+        return "text-gray-400";
+    }
+  };
+
   return (
-    <div>
+    <div className="space-y-6">
+      <div className="mb-2">
+        {!showAddTask ? (
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="text-sm text-accent hover:underline"
+          >
+            + Add New Task
+          </button>
+        ) : (
+          <form onSubmit={addTask} className="space-y-2 sm:space-y-3">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              placeholder="New task title..."
+              className="w-full p-2 sm:p-3 border rounded text-sm"
+            />
+            <button
+              type="submit"
+              className="w-full bg-accent text-white py-2 rounded hover:opacity-90 text-sm"
+            >
+              Add Task
+            </button>
+          </form>
+        )}
+      </div>
+
       {["in-progress", "todo", "done"].map((taskStatus) => {
         const group = grouped[taskStatus];
         return (
-          <div key={taskStatus} className="mb-8">
-            <h2 className="text-xl font-semibold capitalize mb-4 text-primary">
+          <div key={taskStatus} className="space-y-3">
+            <h2 className="text-lg font-semibold capitalize">
               {taskStatus === "done" ? "Closed" : taskStatus.replace("-", " ")}
             </h2>
-            <ul className="space-y-4">
-              {group.map((task) => (
-                <li
-                  key={task.id}
-                  className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 transition hover:shadow-md"
-                >
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-medium text-primary">
-                        {task.title}
-                      </h3>
-                      <span
-                        className={`text-sm capitalize ${
-                          task.status === "todo"
-                            ? "text-gray-500"
-                            : task.status === "in-progress"
-                            ? "text-yellow-600"
-                            : "text-green-600"
-                        }`}
-                      >
-                        ({task.status === "done" ? "closed" : task.status})
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
-                      <select
-                        value={task.status}
-                        onChange={(e) =>
-                          handleStatusChange(task, e.target.value)
-                        }
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent w-full sm:w-auto"
-                      >
-                        <option value="todo">To Do</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="done">Closed</option>
-                      </select>
+            {group.map((task) => (
+              <div
+                key={task.id}
+                className="bg-white p-4 rounded-lg shadow-sm border"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-base">{task.title}</span>
+                  <select
+                    value={task.status}
+                    onChange={(e) => handleStatusChange(task, e.target.value)}
+                    className="text-sm border rounded px-2 py-1"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Closed</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 mb-2">
+                  {task.subTasks?.map((sub, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between"
+                    >
+                      <label className="flex items-center gap-2 text-sm flex-grow">
+                        <input
+                          type="checkbox"
+                          checked={sub.done}
+                          onChange={() => toggleSubTask(task.id, index)}
+                          className="accent-accent"
+                        />
+                        <span
+                          className={
+                            sub.done ? "line-through text-gray-400" : ""
+                          }
+                        >
+                          {sub.title}
+                        </span>
+                      </label>
                       <button
-                        onClick={() => deleteTask(task.id)}
-                        className="text-sm px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition w-full sm:w-auto"
+                        onClick={() => {
+                          const updated = [...task.subTasks];
+                          updated.splice(index, 1);
+                          updateDoc(doc(db, "tasks", task.id), {
+                            subTasks: updated,
+                          });
+                          setTasks((prev) =>
+                            prev.map((t) =>
+                              t.id === task.id ? { ...t, subTasks: updated } : t
+                            )
+                          );
+                        }}
+                        className="text-gray-300 hover:text-red-400 text-lg"
                       >
-                        Delete
+                        ×
                       </button>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
-                  {task.subTasks?.length > 0 && (
-                    <ul className="mt-4 pl-4 border-l border-gray-100 space-y-2">
-                      {task.subTasks.map((sub, index) => (
-                        <li
-                          key={index}
-                          className="flex justify-between items-center"
-                        >
-                          <label className="flex items-center gap-2 text-sm text-gray-700">
-                            <input
-                              type="checkbox"
-                              checked={sub.done}
-                              onChange={() => toggleSubTask(task.id, index)}
-                              className="accent-accent w-4 h-4"
-                            />
-                            <span
-                              className={
-                                sub.done
-                                  ? "line-through text-gray-400"
-                                  : "text-gray-800"
-                              }
-                            >
-                              {sub.title}
-                            </span>
-                          </label>
-                          <button
-                            onClick={() => {
-                              const updated = [...task.subTasks];
-                              updated.splice(index, 1);
-                              updateDoc(doc(db, "tasks", task.id), {
-                                subTasks: updated,
-                              });
-                              setTasks((prev) =>
-                                prev.map((t) =>
-                                  t.id === task.id
-                                    ? { ...t, subTasks: updated }
-                                    : t
-                                )
-                              );
-                            }}
-                            className="text-gray-400 hover:text-red-500 text-lg"
-                          >
-                            ❌
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const input = e.target.elements[`sub-${task.id}`];
-                      addSubTask(task.id, input.value);
-                      input.value = "";
-                    }}
-                    className="mt-4 flex flex-col sm:flex-row gap-2"
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const input = e.target.elements[`sub-${task.id}`];
+                    addSubTask(task.id, input.value);
+                    input.value = "";
+                  }}
+                  className="flex gap-2 items-center"
+                >
+                  <input
+                    type="text"
+                    name={`sub-${task.id}`}
+                    placeholder="Add sub-task..."
+                    className="flex-grow border rounded px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-accent text-white px-4 py-1 rounded text-sm"
                   >
-                    <input
-                      type="text"
-                      name={`sub-${task.id}`}
-                      placeholder="Add sub-task..."
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                    <button
-                      type="submit"
-                      className="bg-accent text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition"
-                    >
-                      Add
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
+                    Add
+                  </button>
+                </form>
+              </div>
+            ))}
           </div>
         );
       })}
