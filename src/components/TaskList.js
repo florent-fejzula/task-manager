@@ -20,7 +20,15 @@ function TaskList({ triggerFetch }) {
   const grouped = {
     todo: [],
     "in-progress": [],
+    "on-hold": [],
     done: [],
+  };
+
+  const statusLabels = {
+    "todo": "To Do",
+    "in-progress": "In Progress",
+    "on-hold": "On Hold",
+    "done": "Closed"
   };
 
   tasks.forEach((task) => {
@@ -162,14 +170,9 @@ function TaskList({ triggerFetch }) {
         )}
       </div>
 
-      {["in-progress", "todo", "done"].map((taskStatus) => {
+      {["in-progress", "todo", "on-hold", "done"].map((taskStatus) => {
         const group = grouped[taskStatus];
-        const displayStatus =
-          taskStatus === "done"
-            ? "Closed"
-            : taskStatus === "todo"
-            ? "To Do"
-            : "In Progress";
+        const displayStatus = statusLabels[taskStatus] || taskStatus;
 
         return (
           <div key={taskStatus} className="mb-10">
@@ -196,6 +199,7 @@ function TaskList({ triggerFetch }) {
                     >
                       <option value="todo">To Do</option>
                       <option value="in-progress">In Progress</option>
+                      <option value="on-hold">On Hold</option>
                       <option value="done">Closed</option>
                     </select>
                   </div>
