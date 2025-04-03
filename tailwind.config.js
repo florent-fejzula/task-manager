@@ -6,6 +6,10 @@ module.exports = {
       fontFamily: {
         sans: ['"DM Sans"', 'sans-serif'],
       },
+      fontSize: {
+        base: '1rem', // 16px
+        sm: '0.95rem',
+      },
       colors: {
         primary: '#111111',
         accent: '#3a5a40',

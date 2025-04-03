@@ -118,11 +118,11 @@ function TaskList({ triggerFetch }) {
               {group.map((task) => (
                 <li
                   key={task.id}
-                  className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 transition hover:shadow-md"
+                  className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 transition hover:shadow-md"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
                     <div>
-                      <h3 className="text-lg font-medium text-primary">
+                      <h3 className="text-base sm:text-lg font-medium text-primary">
                         {task.title}
                       </h3>
                       <span
@@ -137,13 +137,13 @@ function TaskList({ triggerFetch }) {
                         ({task.status === "done" ? "closed" : task.status})
                       </span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
                       <select
                         value={task.status}
                         onChange={(e) =>
                           handleStatusChange(task, e.target.value)
                         }
-                        className="border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent w-full sm:w-auto"
                       >
                         <option value="todo">To Do</option>
                         <option value="in-progress">In Progress</option>
@@ -151,7 +151,7 @@ function TaskList({ triggerFetch }) {
                       </select>
                       <button
                         onClick={() => deleteTask(task.id)}
-                        className="text-sm px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+                        className="text-sm px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition w-full sm:w-auto"
                       >
                         Delete
                       </button>
@@ -170,7 +170,7 @@ function TaskList({ triggerFetch }) {
                               type="checkbox"
                               checked={sub.done}
                               onChange={() => toggleSubTask(task.id, index)}
-                              className="accent-accent"
+                              className="accent-accent w-4 h-4"
                             />
                             <span
                               className={
@@ -197,7 +197,7 @@ function TaskList({ triggerFetch }) {
                                 )
                               );
                             }}
-                            className="text-gray-400 hover:text-red-500 text-sm"
+                            className="text-gray-400 hover:text-red-500 text-lg"
                           >
                             ❌
                           </button>
@@ -213,17 +213,17 @@ function TaskList({ triggerFetch }) {
                       addSubTask(task.id, input.value);
                       input.value = "";
                     }}
-                    className="mt-4 flex gap-2"
+                    className="mt-4 flex flex-col sm:flex-row gap-2"
                   >
                     <input
                       type="text"
                       name={`sub-${task.id}`}
                       placeholder="Add sub-task..."
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                     <button
                       type="submit"
-                      className="bg-accent text-white px-4 py-1 rounded-md text-sm hover:bg-green-700 transition"
+                      className="bg-accent text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition"
                     >
                       Add
                     </button>

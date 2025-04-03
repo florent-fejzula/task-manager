@@ -34,17 +34,20 @@ function AddTask({ onTaskAdded }) {
   };
 
   return (
-    <form onSubmit={handleAddTask} className="flex gap-3 mb-6">
+    <form
+      onSubmit={handleAddTask}
+      className="flex flex-col sm:flex-row gap-3 mb-6"
+    >
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="New task title..."
-        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-sm text-gray-800"
+        className="w-full sm:flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-base text-gray-800"
       />
       <button
         type="submit"
-        className="px-5 py-2 bg-accent text-white rounded-lg text-sm hover:bg-green-700 transition"
+        className="px-6 py-3 bg-accent text-white rounded-lg text-base hover:bg-green-700 transition"
       >
         Add Task
       </button>
