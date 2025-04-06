@@ -24,7 +24,7 @@ function TaskDetail() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setTask({ id: snapshot.id, ...data });
-  
+
         // Set the new title only once — if no editing is in progress
         setNewTitle((prev) => prev || data.title);
       }
@@ -48,7 +48,9 @@ function TaskDetail() {
   };
 
   const handleDeleteTask = async () => {
-    const confirmed = window.confirm("Are you sure you want to delete this task?");
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this task?"
+    );
     if (confirmed) {
       await deleteDoc(taskRef);
       navigate("/");
@@ -64,7 +66,10 @@ function TaskDetail() {
   const handleAddSubtask = async (e) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
-    const updated = [...(task.subTasks || []), { title: newSubtask, done: false }];
+    const updated = [
+      ...(task.subTasks || []),
+      { title: newSubtask, done: false },
+    ];
     await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
     setNewSubtask("");
@@ -93,7 +98,9 @@ function TaskDetail() {
       : "border-gray-200";
 
   return (
-    <div className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}>
+    <div
+      className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}
+    >
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <Link to="/" className="text-sm text-blue-600 hover:underline">
@@ -130,11 +137,11 @@ function TaskDetail() {
       </div>
 
       {/* Status and Priority Dropdowns */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <select
           value={task.status}
           onChange={handleStatusChange}
-          className="border border-gray-300 rounded px-3 py-1"
+          className="border border-gray-300 rounded px-3 py-1 w-full sm:w-auto"
         >
           <option value="todo">To Do</option>
           <option value="in-progress">In Progress</option>
@@ -145,7 +152,7 @@ function TaskDetail() {
         <select
           value={task.priority || "medium"}
           onChange={handlePriorityChange}
-          className="border border-gray-300 rounded px-3 py-1"
+          className="border border-gray-300 rounded px-3 py-1 w-full sm:w-auto"
         >
           <option value="high">High Priority</option>
           <option value="medium">Medium Priority</option>
@@ -183,10 +190,7 @@ function TaskDetail() {
       </ul>
 
       {/* Add Subtask */}
-      <form
-        onSubmit={handleAddSubtask}
-        className="flex gap-2 mb-6"
-      >
+      <form onSubmit={handleAddSubtask} className="flex gap-2 mb-6">
         <input
           type="text"
           value={newSubtask}
