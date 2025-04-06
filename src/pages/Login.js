@@ -42,6 +42,13 @@ function Login() {
           className="w-full border px-3 py-2 rounded-md"
           required
         />
+
+        <div className="text-right text-sm">
+          <Link to="/forgot-password" className="text-accent underline">
+            Forgot password?
+          </Link>
+        </div>
+
         <button
           type="submit"
           className="w-full bg-accent text-white py-2 rounded-md"
@@ -50,7 +57,6 @@ function Login() {
         </button>
       </form>
 
-      {/* Link to Signup */}
       <p className="text-center text-sm mt-4">
         Don’t have an account?{" "}
         <Link to="/signup" className="text-accent underline">

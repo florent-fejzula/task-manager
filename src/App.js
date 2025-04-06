@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword"; // ✅ newly added
 import { useAuth } from "./context/AuthContext";
 import Logout from "./components/Logout";
 
@@ -69,6 +70,10 @@ function App() {
             <Route
               path="/signup"
               element={!currentUser ? <SignUp /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/forgot-password"
+              element={!currentUser ? <ForgotPassword /> : <Navigate to="/" />}
             />
           </Routes>
         </div>

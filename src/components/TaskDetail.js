@@ -20,17 +20,18 @@ function TaskDetail() {
 
   useEffect(() => {
     const fetchTask = async () => {
-      const taskRef = doc(db, "tasks", id); // ✅ now it's inside
       const snapshot = await getDoc(taskRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
         setTask({ id: snapshot.id, ...data });
-        setNewTitle(data.title);
+  
+        // Set the new title only once — if no editing is in progress
+        setNewTitle((prev) => prev || data.title);
       }
       setLoading(false);
     };
     fetchTask();
-  }, [id]);
+  }, [taskRef]);
 
   const toggleSubTask = async (index) => {
     const updated = [...task.subTasks];
