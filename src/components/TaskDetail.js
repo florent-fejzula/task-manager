@@ -3,21 +3,25 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { useAuth } from "../context/AuthContext";
 import { Pencil } from "lucide-react";
 
 function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
 
+  const taskRef = doc(db, "users", currentUser.uid, "tasks", id);
+
   useEffect(() => {
     const fetchTask = async () => {
-      const docRef = doc(db, "tasks", id);
-      const snapshot = await getDoc(docRef);
+      const taskRef = doc(db, "tasks", id); // ✅ now it's inside
+      const snapshot = await getDoc(taskRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
         setTask({ id: snapshot.id, ...data });
@@ -31,27 +35,27 @@ function TaskDetail() {
   const toggleSubTask = async (index) => {
     const updated = [...task.subTasks];
     updated[index].done = !updated[index].done;
-    await updateDoc(doc(db, "tasks", id), { subTasks: updated });
+    await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
   };
 
   const deleteSubTask = async (index) => {
     const updated = [...task.subTasks];
     updated.splice(index, 1);
-    await updateDoc(doc(db, "tasks", id), { subTasks: updated });
+    await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
   };
 
   const handleDeleteTask = async () => {
     const confirmed = window.confirm("Are you sure you want to delete this task?");
     if (confirmed) {
-      await deleteDoc(doc(db, "tasks", id));
+      await deleteDoc(taskRef);
       navigate("/");
     }
   };
 
   const handleTitleSave = async () => {
-    await updateDoc(doc(db, "tasks", id), { title: newTitle });
+    await updateDoc(taskRef, { title: newTitle });
     setTask({ ...task, title: newTitle });
     setEditingTitle(false);
   };
@@ -60,20 +64,20 @@ function TaskDetail() {
     e.preventDefault();
     if (!newSubtask.trim()) return;
     const updated = [...(task.subTasks || []), { title: newSubtask, done: false }];
-    await updateDoc(doc(db, "tasks", id), { subTasks: updated });
+    await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
     setNewSubtask("");
   };
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    await updateDoc(doc(db, "tasks", id), { status: newStatus });
+    await updateDoc(taskRef, { status: newStatus });
     setTask({ ...task, status: newStatus });
   };
 
   const handlePriorityChange = async (e) => {
     const newPriority = e.target.value;
-    await updateDoc(doc(db, "tasks", id), { priority: newPriority });
+    await updateDoc(taskRef, { priority: newPriority });
     setTask({ ...task, priority: newPriority });
   };
 

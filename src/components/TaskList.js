@@ -12,8 +12,10 @@ import {
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 function TaskList({ triggerFetch }) {
+  const { currentUser } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -39,7 +41,7 @@ function TaskList({ triggerFetch }) {
 
   const handleStatusChange = async (task, newStatus) => {
     try {
-      const taskRef = doc(db, "tasks", task.id);
+      const taskRef = doc(db, "users", currentUser.uid, "tasks", task.id);
       await updateDoc(taskRef, { status: newStatus });
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
@@ -52,7 +54,7 @@ function TaskList({ triggerFetch }) {
   const addSubTask = async (taskId, title) => {
     if (!title.trim()) return;
     try {
-      const taskRef = doc(db, "tasks", taskId);
+      const taskRef = doc(db, "users", currentUser.uid, "tasks", taskId);
       const task = tasks.find((t) => t.id === taskId);
       const updatedSubTasks = [
         ...(task.subTasks || []),
@@ -74,7 +76,7 @@ function TaskList({ triggerFetch }) {
     const updatedSubTasks = [...(task.subTasks || [])];
     updatedSubTasks[index].done = !updatedSubTasks[index].done;
     try {
-      const taskRef = doc(db, "tasks", taskId);
+      const taskRef = doc(db, "users", currentUser.uid, "tasks", taskId);
       await updateDoc(taskRef, { subTasks: updatedSubTasks });
       setTasks((prev) =>
         prev.map((t) =>
@@ -90,7 +92,7 @@ function TaskList({ triggerFetch }) {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     try {
-      const docRef = await addDoc(collection(db, "tasks"), {
+      const docRef = await addDoc(collection(db, "users", currentUser.uid, "tasks"), {
         title: newTaskTitle,
         status: "todo",
         priority: "medium",
@@ -118,7 +120,10 @@ function TaskList({ triggerFetch }) {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+        const q = query(
+          collection(db, "users", currentUser.uid, "tasks"),
+          orderBy("createdAt", "desc")
+        );
         const snapshot = await getDocs(q);
         const tasksData = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -129,8 +134,8 @@ function TaskList({ triggerFetch }) {
         console.error("Error fetching tasks:", err);
       }
     };
-    fetchTasks();
-  }, [triggerFetch]);
+    if (currentUser?.uid) fetchTasks();
+  }, [triggerFetch, currentUser?.uid]);
 
   const sortedStatuses = ["in-progress", "todo", "on-hold", "done"];
 
@@ -171,7 +176,6 @@ function TaskList({ triggerFetch }) {
         let group = grouped[taskStatus];
         const displayStatus = statusLabels[taskStatus] || taskStatus;
 
-        // Sort so high-priority tasks come first
         group = [...group].sort((a, b) => {
           const getWeight = (priority) =>
             priority === "high" ? 0 : priority === "medium" ? 1 : 2;
@@ -262,9 +266,10 @@ function TaskList({ triggerFetch }) {
                               onClick={() => {
                                 const updated = [...task.subTasks];
                                 updated.splice(index, 1);
-                                updateDoc(doc(db, "tasks", task.id), {
-                                  subTasks: updated,
-                                });
+                                updateDoc(
+                                  doc(db, "users", currentUser.uid, "tasks", task.id),
+                                  { subTasks: updated }
+                                );
                                 setTasks((prev) =>
                                   prev.map((t) =>
                                     t.id === task.id
