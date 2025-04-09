@@ -21,6 +21,7 @@ function TaskList({ triggerFetch }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [showClosed, setShowClosed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const grouped = {
     todo: [],
@@ -125,6 +126,7 @@ function TaskList({ triggerFetch }) {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
+        setLoading(true);
         const q = query(
           collection(db, "users", currentUser.uid, "tasks"),
           orderBy("createdAt", "desc")
@@ -135,14 +137,24 @@ function TaskList({ triggerFetch }) {
           ...doc.data(),
         }));
         setTasks(tasksData);
+        setLoading(false);
       } catch (err) {
         console.error("Error fetching tasks:", err);
+        setLoading(false);
       }
     };
     if (currentUser?.uid) fetchTasks();
   }, [triggerFetch, currentUser?.uid]);
 
   const sortedStatuses = ["in-progress", "todo", "on-hold", "done"];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -187,6 +199,7 @@ function TaskList({ triggerFetch }) {
         )}
       </div>
 
+      {/* Status sections */}
       {sortedStatuses.map((taskStatus) => {
         let group = grouped[taskStatus];
         const displayStatus = statusLabels[taskStatus] || taskStatus;
