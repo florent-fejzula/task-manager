@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 function TaskList({ triggerFetch }) {
   const { currentUser } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [newTaskStatus, setNewTaskStatus] = useState("todo");
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [showClosed, setShowClosed] = useState(false);
@@ -92,26 +93,30 @@ function TaskList({ triggerFetch }) {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     try {
-      const docRef = await addDoc(collection(db, "users", currentUser.uid, "tasks"), {
-        title: newTaskTitle,
-        status: "todo",
-        priority: "medium",
-        createdAt: serverTimestamp(),
-        subTasks: [],
-      });
+      const docRef = await addDoc(
+        collection(db, "users", currentUser.uid, "tasks"),
+        {
+          title: newTaskTitle,
+          status: newTaskStatus,
+          priority: "medium",
+          createdAt: serverTimestamp(),
+          subTasks: [],
+        }
+      );
       setNewTaskTitle("");
       setShowAddTask(false);
       setTasks((prev) => [
         {
           id: docRef.id,
           title: newTaskTitle,
-          status: "todo",
+          status: newTaskStatus,
           priority: "medium",
           subTasks: [],
           createdAt: new Date(),
         },
         ...prev,
       ]);
+      setNewTaskStatus("todo");
     } catch (err) {
       console.error("Error adding task:", err);
     }
@@ -162,6 +167,16 @@ function TaskList({ triggerFetch }) {
               placeholder="New task title..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-accent"
             />
+            <select
+              value={newTaskStatus}
+              onChange={(e) => setNewTaskStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-accent"
+            >
+              <option value="todo">To Do</option>
+              <option value="in-progress">In Progress</option>
+              <option value="on-hold">On Hold</option>
+              <option value="done">Closed</option>
+            </select>
             <button
               type="submit"
               className="w-full bg-accent text-white py-2 rounded-md hover:bg-accent-dark transition"
@@ -190,20 +205,21 @@ function TaskList({ triggerFetch }) {
         return (
           <div key={taskStatus} className="mb-10">
             <div
-              className={`text-accent font-serif italic text-lg mb-2 border-b border-gray-200 pb-1 flex justify-between items-center cursor-pointer ${isClosed ? "hover:opacity-80" : ""}`}
+              className={`text-accent font-serif italic text-lg mb-2 border-b border-gray-200 pb-1 flex justify-between items-center cursor-pointer ${
+                isClosed ? "hover:opacity-80" : ""
+              }`}
               onClick={() => isClosed && setShowClosed((prev) => !prev)}
             >
               <span>
                 {displayStatus}
                 {isClosed && ` (${group.length})`}
               </span>
-              {isClosed && (
-                showClosed ? (
+              {isClosed &&
+                (showClosed ? (
                   <ChevronUp className="w-4 h-4 text-gray-500" />
                 ) : (
                   <ChevronDown className="w-4 h-4 text-gray-500" />
-                )
-              )}
+                ))}
             </div>
 
             {(!isClosed || showClosed) && (
@@ -267,7 +283,13 @@ function TaskList({ triggerFetch }) {
                                 const updated = [...task.subTasks];
                                 updated.splice(index, 1);
                                 updateDoc(
-                                  doc(db, "users", currentUser.uid, "tasks", task.id),
+                                  doc(
+                                    db,
+                                    "users",
+                                    currentUser.uid,
+                                    "tasks",
+                                    task.id
+                                  ),
                                   { subTasks: updated }
                                 );
                                 setTasks((prev) =>

@@ -15,6 +15,7 @@ function TaskDetail() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const taskRef = doc(db, "users", currentUser.uid, "tasks", id);
 
@@ -24,14 +25,12 @@ function TaskDetail() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setTask({ id: snapshot.id, ...data });
-
-        // Set the new title only once — if no editing is in progress
-        setNewTitle((prev) => prev || data.title);
+        setNewTitle(data.title);
       }
       setLoading(false);
     };
     fetchTask();
-  }, [taskRef]);
+  }, [id, currentUser.uid, taskRef]);
 
   const toggleSubTask = async (index) => {
     const updated = [...task.subTasks];
@@ -48,13 +47,8 @@ function TaskDetail() {
   };
 
   const handleDeleteTask = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this task?"
-    );
-    if (confirmed) {
-      await deleteDoc(taskRef);
-      navigate("/");
-    }
+    await deleteDoc(taskRef);
+    navigate("/");
   };
 
   const handleTitleSave = async () => {
@@ -66,10 +60,7 @@ function TaskDetail() {
   const handleAddSubtask = async (e) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
-    const updated = [
-      ...(task.subTasks || []),
-      { title: newSubtask, done: false },
-    ];
+    const updated = [...(task.subTasks || []), { title: newSubtask, done: false }];
     await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
     setNewSubtask("");
@@ -98,9 +89,7 @@ function TaskDetail() {
       : "border-gray-200";
 
   return (
-    <div
-      className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}
-    >
+    <div className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <Link to="/" className="text-sm text-blue-600 hover:underline">
@@ -137,11 +126,11 @@ function TaskDetail() {
       </div>
 
       {/* Status and Priority Dropdowns */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex gap-4 mb-6">
         <select
           value={task.status}
           onChange={handleStatusChange}
-          className="border border-gray-300 rounded px-3 py-1 w-full sm:w-auto"
+          className="border border-gray-300 rounded px-3 py-1"
         >
           <option value="todo">To Do</option>
           <option value="in-progress">In Progress</option>
@@ -152,7 +141,7 @@ function TaskDetail() {
         <select
           value={task.priority || "medium"}
           onChange={handlePriorityChange}
-          className="border border-gray-300 rounded px-3 py-1 w-full sm:w-auto"
+          className="border border-gray-300 rounded px-3 py-1"
         >
           <option value="high">High Priority</option>
           <option value="medium">Medium Priority</option>
@@ -208,11 +197,39 @@ function TaskDetail() {
 
       {/* Delete Button */}
       <button
-        onClick={handleDeleteTask}
+        onClick={() => setShowConfirmDelete(true)}
         className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 w-full"
       >
         Delete Task
       </button>
+
+      {/* Custom Confirm Modal */}
+      {showConfirmDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-200">
+        <div className="bg-white rounded-lg shadow-lg w-80 p-6 transform transition-all duration-300 scale-95 opacity-0 animate-fade-in">
+          <h3 className="text-lg font-semibold mb-4 text-center">
+            Confirm Delete
+          </h3>
+          <p className="text-sm text-gray-600 mb-6 text-center">
+            Are you sure you want to delete this task?
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowConfirmDelete(false)}
+              className="px-4 py-2 text-sm rounded bg-gray-200 hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteTask}
+              className="px-4 py-2 text-sm rounded bg-red-500 text-white hover:bg-red-600"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
     </div>
   );
 }
