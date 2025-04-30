@@ -1,9 +1,12 @@
 // TaskCard.js
+import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 
 function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
+  const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
+
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     try {
@@ -17,7 +20,19 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
 
   const handleToggleSubTask = async (index) => {
     const updated = [...(task.subTasks || [])];
-    updated[index].done = !updated[index].done;
+    const sub = updated[index];
+
+    // 3-state cycle: Not started → In progress → Completed → Not started
+    if (!sub.done && !sub.inProgress) {
+      sub.inProgress = true;
+    } else if (!sub.done && sub.inProgress) {
+      sub.done = true;
+      sub.inProgress = false;
+    } else {
+      sub.done = false;
+      sub.inProgress = false;
+    }
+
     await updateDoc(doc(db, "users", currentUser.uid, "tasks", task.id), {
       subTasks: updated,
     });
@@ -38,7 +53,7 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
     const input = e.target.elements[`sub-${task.id}`];
     const title = input.value.trim();
     if (!title) return;
-    const updated = [...(task.subTasks || []), { title, done: false }];
+    const updated = [...(task.subTasks || []), { title, done: false, inProgress: false }];
     await updateDoc(doc(db, "users", currentUser.uid, "tasks", task.id), {
       subTasks: updated,
     });
@@ -56,6 +71,7 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
           : "border-gray-200"
       }`}
     >
+      {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <Link to={`/task/${task.id}`} className="hover:underline">
           <strong className="text-lg font-semibold">{task.title}</strong>
@@ -72,40 +88,95 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
         </select>
       </div>
 
+      {/* Subtasks */}
       {task.subTasks?.length > 0 && (
         <ul className="space-y-1">
-          {task.subTasks.map((sub, index) => (
-            <li
-              key={index}
-              className="flex items-center justify-between text-sm"
-            >
-              <label className="flex items-center gap-2 flex-grow">
-                <input
-                  type="checkbox"
-                  checked={sub.done}
-                  onChange={() => handleToggleSubTask(index)}
-                />
-                <span
-                  className={
-                    sub.done
-                      ? "line-through text-gray-400"
-                      : "text-primary"
-                  }
+          {/* Unchecked and in-progress subtasks */}
+          {task.subTasks.map((sub, index) =>
+            !sub.done ? (
+              <li key={index} className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 flex-grow cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sub.done}
+                    onChange={() => handleToggleSubTask(index)}
+                    className="cursor-pointer"
+                  />
+                  <span
+                    className={
+                      sub.inProgress
+                        ? "text-blue-600"
+                        : "text-primary"
+                    }
+                  >
+                    {sub.title}
+                  </span>
+                </label>
+                <button
+                  onClick={() => handleDeleteSubTask(index)}
+                  className="text-gray-300 hover:text-red-400 text-lg"
                 >
-                  {sub.title}
-                </span>
-              </label>
-              <button
-                onClick={() => handleDeleteSubTask(index)}
-                className="text-gray-300 hover:text-red-400 text-lg"
+                  ×
+                </button>
+              </li>
+            ) : null
+          )}
+
+          {/* Toggle for completed subtasks */}
+          {task.subTasks.some((s) => s.done) && (
+            <li
+              className="flex justify-between items-center border-b border-gray-200 py-2 cursor-pointer select-none"
+              onClick={() => setShowDoneSubTasks(!showDoneSubTasks)}
+            >
+              <span className="text-sm font-medium italic text-gray-500 font-serif tracking-wide">
+                Completed Subtasks ({task.subTasks.filter((s) => s.done).length})
+              </span>
+              <svg
+                className={`w-4 h-4 text-gray-400 transform transition-transform duration-200 ${
+                  showDoneSubTasks ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                ×
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
             </li>
-          ))}
+          )}
+
+          {/* Done subtasks (conditionally visible) */}
+          {showDoneSubTasks &&
+            task.subTasks.map((sub, index) =>
+              sub.done ? (
+                <li key={index} className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 flex-grow">
+                    <input
+                      type="checkbox"
+                      checked={sub.done}
+                      onChange={() => handleToggleSubTask(index)}
+                    />
+                    <span className="line-through text-gray-400">
+                      {sub.title}
+                    </span>
+                  </label>
+                  <button
+                    onClick={() => handleDeleteSubTask(index)}
+                    className="text-gray-300 hover:text-red-400 text-lg"
+                  >
+                    ×
+                  </button>
+                </li>
+              ) : null
+            )}
         </ul>
       )}
 
+      {/* Add subtask */}
       <form
         onSubmit={handleAddSubTask}
         className="mt-3 flex items-center gap-2"
