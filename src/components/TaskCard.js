@@ -1,11 +1,17 @@
-// TaskCard.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 
-function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
+function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate, collapseSubtasks }) {
   const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
+
+  // Sync from settings when it becomes available
+  useEffect(() => {
+    if (typeof collapseSubtasks === "boolean") {
+      setShowDoneSubTasks(collapseSubtasks);
+    }
+  }, [collapseSubtasks]);
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -22,7 +28,6 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
     const updated = [...(task.subTasks || [])];
     const sub = updated[index];
 
-    // 3-state cycle: Not started → In progress → Completed → Not started
     if (!sub.done && !sub.inProgress) {
       sub.inProgress = true;
     } else if (!sub.done && sub.inProgress) {
@@ -71,7 +76,6 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
           : "border-gray-200"
       }`}
     >
-      {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <Link to={`/task/${task.id}`} className="hover:underline">
           <strong className="text-lg font-semibold">{task.title}</strong>
@@ -88,10 +92,8 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
         </select>
       </div>
 
-      {/* Subtasks */}
       {task.subTasks?.length > 0 && (
         <ul className="space-y-1">
-          {/* Unchecked and in-progress subtasks */}
           {task.subTasks.map((sub, index) =>
             !sub.done ? (
               <li key={index} className="flex items-center justify-between text-sm">
@@ -100,15 +102,8 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
                     type="checkbox"
                     checked={sub.done}
                     onChange={() => handleToggleSubTask(index)}
-                    className="cursor-pointer"
                   />
-                  <span
-                    className={
-                      sub.inProgress
-                        ? "text-blue-600"
-                        : "text-primary"
-                    }
-                  >
+                  <span className={sub.inProgress ? "text-blue-600 italic" : "text-primary"}>
                     {sub.title}
                   </span>
                 </label>
@@ -122,13 +117,12 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
             ) : null
           )}
 
-          {/* Toggle for completed subtasks */}
           {task.subTasks.some((s) => s.done) && (
             <li
               className="flex justify-between items-center border-b border-gray-200 py-2 cursor-pointer select-none"
               onClick={() => setShowDoneSubTasks(!showDoneSubTasks)}
             >
-              <span className="text-sm font-medium italic text-gray-500 font-serif tracking-wide">
+              <span className="text-sm font-medium italic text-gray-700 font-serif tracking-wide">
                 Completed Subtasks ({task.subTasks.filter((s) => s.done).length})
               </span>
               <svg
@@ -139,17 +133,11 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </li>
           )}
 
-          {/* Done subtasks (conditionally visible) */}
           {showDoneSubTasks &&
             task.subTasks.map((sub, index) =>
               sub.done ? (
@@ -160,9 +148,7 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
                       checked={sub.done}
                       onChange={() => handleToggleSubTask(index)}
                     />
-                    <span className="line-through text-gray-400">
-                      {sub.title}
-                    </span>
+                    <span className="line-through text-gray-400">{sub.title}</span>
                   </label>
                   <button
                     onClick={() => handleDeleteSubTask(index)}
@@ -176,11 +162,7 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate }) {
         </ul>
       )}
 
-      {/* Add subtask */}
-      <form
-        onSubmit={handleAddSubTask}
-        className="mt-3 flex items-center gap-2"
-      >
+      <form onSubmit={handleAddSubTask} className="mt-3 flex items-center gap-2">
         <input
           type="text"
           name={`sub-${task.id}`}

@@ -1,17 +1,48 @@
-import TaskList from "./components/TaskList";
-import TaskDetail from "./components/TaskDetail";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  Link,
 } from "react-router-dom";
+
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase/firebase";
+import { useAuth } from "./context/AuthContext";
+
+import TaskList from "./components/TaskList";
+import TaskDetail from "./components/TaskDetail";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword"; // ✅ newly added
-import { useAuth } from "./context/AuthContext";
+import ForgotPassword from "./pages/ForgotPassword";
+import Settings from "./pages/Settings";
 import Logout from "./components/Logout";
+
+function TaskDetailWithSettings({ userId }) {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const ref = doc(db, "users", userId, "settings", "preferences");
+      const snap = await getDoc(ref);
+      setSettings(snap.exists() ? snap.data() : {});
+      setLoading(false);
+    };
+    fetchSettings();
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <p className="text-center mt-8 text-sm text-gray-500">
+        Loading task settings...
+      </p>
+    );
+  }
+
+  return <TaskDetail collapseSubtasks={settings?.collapseCompletedSubtasks} />;
+}
 
 function App() {
   const [triggerFetch, setTriggerFetch] = useState(false);
@@ -35,7 +66,13 @@ function App() {
                       <p className="mt-2 text-sm text-gray-500">
                         Stay on top of your goals, one task at a time.
                       </p>
-                      <div className="text-right mt-4">
+                      <div className="text-right mt-4 flex justify-end items-center gap-4">
+                        <Link
+                          to="/settings"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          ⚙️ Settings
+                        </Link>
                         <Logout />
                       </div>
                     </header>
@@ -57,7 +94,17 @@ function App() {
               path="/task/:id"
               element={
                 currentUser ? (
-                  <TaskDetail userId={currentUser.uid} />
+                  <TaskDetailWithSettings userId={currentUser.uid} />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                currentUser ? (
+                  <Settings />
                 ) : (
                   <Navigate to="/login" />
                 )

@@ -6,6 +6,8 @@ import {
   orderBy,
   addDoc,
   serverTimestamp,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -19,6 +21,7 @@ function TaskList({ triggerFetch }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userSettings, setUserSettings] = useState({});
 
   const grouped = {
     todo: [],
@@ -70,9 +73,11 @@ function TaskList({ triggerFetch }) {
   const sortedStatuses = ["in-progress", "todo", "on-hold", "done"];
 
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchTasksAndSettings = async () => {
       try {
         setLoading(true);
+
+        // 🔹 Fetch tasks
         const q = query(
           collection(db, "users", currentUser.uid, "tasks"),
           orderBy("createdAt", "desc")
@@ -83,13 +88,24 @@ function TaskList({ triggerFetch }) {
           ...doc.data(),
         }));
         setTasks(tasksData);
+
+        // 🔹 Fetch settings
+        const settingsRef = doc(db, "users", currentUser.uid, "settings", "preferences");
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+          setUserSettings(settingsSnap.data());
+        } else {
+          setUserSettings({});
+        }
+
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching tasks:", err);
+        console.error("Error fetching tasks or settings:", err);
         setLoading(false);
       }
     };
-    if (currentUser?.uid) fetchTasks();
+
+    if (currentUser?.uid) fetchTasksAndSettings();
   }, [triggerFetch, currentUser?.uid]);
 
   if (loading) {
@@ -111,9 +127,7 @@ function TaskList({ triggerFetch }) {
             + Add New Task
           </button>
         )}
-        {showAddTask && (
-          <AddTaskForm onAdd={handleAddTask} />
-        )}
+        {showAddTask && <AddTaskForm onAdd={handleAddTask} />}
       </div>
 
       {sortedStatuses.map((taskStatus) => {
@@ -124,8 +138,7 @@ function TaskList({ triggerFetch }) {
           const getWeight = (priority) =>
             priority === "high" ? 0 : priority === "medium" ? 1 : 2;
           return (
-            getWeight(a.priority || "medium") -
-            getWeight(b.priority || "medium")
+            getWeight(a.priority || "medium") - getWeight(b.priority || "medium")
           );
         });
 
@@ -158,6 +171,7 @@ function TaskList({ triggerFetch }) {
                     key={task.id}
                     task={task}
                     currentUser={currentUser}
+                    collapseSubtasks={userSettings?.collapseCompletedSubtasks}
                     onStatusChange={(taskId, newStatus) =>
                       setTasks((prev) =>
                         prev.map((t) =>

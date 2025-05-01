@@ -5,10 +5,11 @@ import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
 import { Pencil } from "lucide-react";
 
-function TaskDetail() {
+function TaskDetail({ collapseSubtasks = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -30,7 +31,13 @@ function TaskDetail() {
       setLoading(false);
     };
     fetchTask();
-  }, [id, currentUser.uid, taskRef]);
+  }, [id, currentUser.uid]);
+
+  useEffect(() => {
+    if (typeof collapseSubtasks === "boolean") {
+      setShowDoneSubTasks(collapseSubtasks);
+    }
+  }, [collapseSubtasks]);
 
   const toggleSubTask = async (index) => {
     const updated = [...task.subTasks];
@@ -71,10 +78,7 @@ function TaskDetail() {
   const handleAddSubtask = async (e) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
-    const updated = [
-      ...(task.subTasks || []),
-      { title: newSubtask, done: false, inProgress: false },
-    ];
+    const updated = [...(task.subTasks || []), { title: newSubtask, done: false, inProgress: false }];
     await updateDoc(taskRef, { subTasks: updated });
     setTask({ ...task, subTasks: updated });
     setNewSubtask("");
@@ -103,9 +107,7 @@ function TaskDetail() {
       : "border-gray-200";
 
   return (
-    <div
-      className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}
-    >
+    <div className={`bg-white shadow-md rounded-lg p-6 sm:p-8 max-w-xl mx-auto mt-8 border ${priorityClass}`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <Link to="/" className="text-sm text-blue-600 hover:underline">
@@ -141,7 +143,7 @@ function TaskDetail() {
         )}
       </div>
 
-      {/* Status and Priority Dropdowns */}
+      {/* Status and Priority */}
       <div className="flex gap-4 mb-6">
         <select
           value={task.status}
@@ -176,11 +178,7 @@ function TaskDetail() {
                   checked={sub.done}
                   onChange={() => toggleSubTask(index)}
                 />
-                <span
-                  className={
-                    sub.inProgress ? "text-blue-600" : "text-gray-800"
-                  }
-                >
+                <span className={sub.inProgress ? "text-blue-600 italic" : "text-gray-800"}>
                   {sub.title}
                 </span>
               </label>
@@ -194,13 +192,12 @@ function TaskDetail() {
           ) : null
         )}
 
-        {/* Toggle Done Section */}
         {task.subTasks?.some((s) => s.done) && (
           <li
             className="flex justify-between items-center border-b border-gray-200 py-2 cursor-pointer select-none"
             onClick={() => setShowDoneSubTasks(!showDoneSubTasks)}
           >
-            <span className="text-sm font-medium italic text-gray-500 font-serif tracking-wide">
+            <span className="text-sm font-medium italic text-gray-700 font-serif tracking-wide">
               Completed Subtasks ({task.subTasks.filter((s) => s.done).length})
             </span>
             <svg
@@ -211,17 +208,11 @@ function TaskDetail() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </li>
         )}
 
-        {/* Completed subtasks (collapsed by default) */}
         {showDoneSubTasks &&
           task.subTasks.map((sub, index) =>
             sub.done ? (
@@ -232,9 +223,7 @@ function TaskDetail() {
                     checked={sub.done}
                     onChange={() => toggleSubTask(index)}
                   />
-                  <span className="line-through text-gray-400">
-                    {sub.title}
-                  </span>
+                  <span className="line-through text-gray-400">{sub.title}</span>
                 </label>
                 <button
                   onClick={() => deleteSubTask(index)}
@@ -264,7 +253,7 @@ function TaskDetail() {
         </button>
       </form>
 
-      {/* Delete Task Button */}
+      {/* Delete Task */}
       <button
         onClick={() => setShowConfirmDelete(true)}
         className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 w-full"
@@ -272,7 +261,7 @@ function TaskDetail() {
         Delete Task
       </button>
 
-      {/* Confirm Delete Modal */}
+      {/* Confirm Modal */}
       {showConfirmDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-200">
           <div className="bg-white rounded-lg shadow-lg w-80 p-6 transform transition-all duration-300 scale-95 opacity-0 animate-fade-in">
