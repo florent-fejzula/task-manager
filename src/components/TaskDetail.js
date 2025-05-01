@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
 import { Pencil } from "lucide-react";
@@ -17,6 +17,7 @@ function TaskDetail({ collapseSubtasks = false }) {
   const [newSubtask, setNewSubtask] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
 
   const taskRef = doc(db, "users", currentUser.uid, "tasks", id);
 
@@ -38,6 +39,50 @@ function TaskDetail({ collapseSubtasks = false }) {
       setShowDoneSubTasks(collapseSubtasks);
     }
   }, [collapseSubtasks]);
+
+  useEffect(() => {
+    if (!task?.timerStart || !task?.timerDuration) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const start = task.timerStart.toMillis?.() || new Date(task.timerStart).getTime();
+    const duration = task.timerDuration;
+    const updateRemaining = () => {
+      const now = Date.now();
+      const remaining = start + duration - now;
+      setTimeLeft(remaining > 0 ? remaining : null);
+    };
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 60000);
+    return () => clearInterval(interval);
+  }, [task?.timerStart, task?.timerDuration]);
+
+  const formatTimeLeft = (ms) => {
+    const totalMins = Math.floor(ms / 60000);
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return `${hrs > 0 ? `${hrs}:` : ""}${mins.toString().padStart(2, "0")}`;
+  };
+
+  const handleSetTimer = async (durationMs) => {
+    await updateDoc(taskRef, {
+      timerStart: Timestamp.now(),
+      timerDuration: durationMs,
+    });
+    const updatedTask = { ...task, timerStart: Timestamp.now(), timerDuration: durationMs };
+    setTask(updatedTask);
+  };
+
+  const handleCancelTimer = async () => {
+    await updateDoc(taskRef, {
+      timerStart: null,
+      timerDuration: null,
+    });
+    setTask({ ...task, timerStart: null, timerDuration: null });
+    setTimeLeft(null);
+  };
 
   const toggleSubTask = async (index) => {
     const updated = [...task.subTasks];
@@ -143,28 +188,64 @@ function TaskDetail({ collapseSubtasks = false }) {
         )}
       </div>
 
-      {/* Status and Priority */}
-      <div className="flex gap-4 mb-6">
-        <select
-          value={task.status}
-          onChange={handleStatusChange}
-          className="border border-gray-300 rounded px-3 py-1"
-        >
-          <option value="todo">To Do</option>
-          <option value="in-progress">In Progress</option>
-          <option value="on-hold">On Hold</option>
-          <option value="done">Closed</option>
-        </select>
+      {/* Status, Priority, Timer */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex gap-4">
+          <select
+            value={task.status}
+            onChange={handleStatusChange}
+            className="border border-gray-300 rounded px-3 py-1"
+          >
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="on-hold">On Hold</option>
+            <option value="done">Closed</option>
+          </select>
 
-        <select
-          value={task.priority || "medium"}
-          onChange={handlePriorityChange}
-          className="border border-gray-300 rounded px-3 py-1"
-        >
-          <option value="high">High Priority</option>
-          <option value="medium">Medium Priority</option>
-          <option value="low">Low Priority</option>
-        </select>
+          <select
+            value={task.priority || "medium"}
+            onChange={handlePriorityChange}
+            className="border border-gray-300 rounded px-3 py-1"
+          >
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+        </div>
+
+        {/* Timer */}
+        {timeLeft && (
+          <div className="text-sm text-orange-600 font-medium italic">
+            ⏳ {formatTimeLeft(timeLeft)} left
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium">Set Timer:</label>
+          <select
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              if (val) handleSetTimer(val);
+            }}
+            className="border border-gray-300 rounded px-2 py-1 text-sm"
+            defaultValue=""
+          >
+            <option value="">-- Choose --</option>
+            <option value="1800000">30 min</option>
+            <option value="3600000">1 hour</option>
+            <option value="7200000">2 hours</option>
+            <option value="18000000">5 hours</option>
+            <option value="28800000">8 hours</option>
+          </select>
+          {task.timerStart && task.timerDuration && (
+            <button
+              onClick={handleCancelTimer}
+              className="text-xs text-red-600 underline"
+            >
+              Cancel Timer
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Subtasks */}

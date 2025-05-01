@@ -1,17 +1,44 @@
 import { useState, useEffect } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 
 function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate, collapseSubtasks }) {
   const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
 
-  // Sync from settings when it becomes available
   useEffect(() => {
     if (typeof collapseSubtasks === "boolean") {
       setShowDoneSubTasks(collapseSubtasks);
     }
   }, [collapseSubtasks]);
+
+  useEffect(() => {
+    if (!task.timerStart || !task.timerDuration) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const start = task.timerStart.toMillis?.() || new Date(task.timerStart).getTime();
+    const duration = task.timerDuration;
+    const updateRemainingTime = () => {
+      const now = Date.now();
+      const remaining = start + duration - now;
+      setTimeLeft(remaining > 0 ? remaining : null);
+    };
+
+    updateRemainingTime(); // initial
+    const interval = setInterval(updateRemainingTime, 60000); // every minute
+
+    return () => clearInterval(interval);
+  }, [task.timerStart, task.timerDuration]);
+
+  const formatTimeLeft = (ms) => {
+    const totalMins = Math.floor(ms / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return `${hours > 0 ? `${hours}:` : ""}${mins.toString().padStart(2, "0")}`;
+  };
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -92,6 +119,14 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate, collapse
         </select>
       </div>
 
+      {/* Timer display */}
+      {timeLeft && (
+        <div className="text-xs text-orange-600 mb-2 font-medium italic">
+          ⏳ {formatTimeLeft(timeLeft)} left
+        </div>
+      )}
+
+      {/* Subtasks */}
       {task.subTasks?.length > 0 && (
         <ul className="space-y-1">
           {task.subTasks.map((sub, index) =>
