@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 
@@ -121,7 +121,7 @@ function TaskCard({ task, currentUser, onStatusChange, onSubTaskUpdate, collapse
 
       {/* Timer display */}
       {timeLeft && (
-        <div className="text-xs text-orange-600 mb-2 font-medium italic">
+        <div className="text-sm text-orange-600 mb-2 font-medium italic">
           ⏳ {formatTimeLeft(timeLeft)} left
         </div>
       )}
