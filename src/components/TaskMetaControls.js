@@ -44,10 +44,11 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
   };
 
   const handleSetTimer = async (durationMs) => {
-    const now = Timestamp.now();
+    const now = Date.now();
     await updateDoc(taskRef, {
       timerStart: now,
       timerDuration: durationMs,
+      notified15min: false,
     });
     onUpdate({ timerStart: now, timerDuration: durationMs });
   };
@@ -103,6 +104,7 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
           defaultValue=""
         >
           <option value="">-- Choose --</option>
+          <option value="1020000">17 min (test)</option>
           <option value="1800000">30 min</option>
           <option value="3600000">1 hour</option>
           <option value="7200000">2 hours</option>

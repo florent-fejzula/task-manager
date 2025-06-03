@@ -28,7 +28,7 @@ function TaskDetail({ collapseSubtasks = false }) {
       setLoading(false);
     };
     fetchTask();
-  }, [id, currentUser.uid]);
+  }, [id, currentUser.uid, taskRef]);
 
   const handleUpdateTask = async (updates) => {
     setTask((prev) => ({ ...prev, ...updates }));
