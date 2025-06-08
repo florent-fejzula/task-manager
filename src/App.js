@@ -12,7 +12,7 @@ import { messaging } from "./firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase/firebase";
 import { useAuth } from "./context/AuthContext";
-import { requestNotificationPermission } from "./firebase/requestPermission"; // ✅ NEW
+import { requestNotificationPermission } from "./firebase/requestPermission";
 
 import TaskList from "./components/TaskList";
 import TaskDetail from "./components/TaskDetail";
@@ -51,13 +51,64 @@ function App() {
   const [triggerFetch, setTriggerFetch] = useState(false);
   const { currentUser } = useAuth();
 
+  // ✅ Service Worker Update Handler
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    let refreshing = false;
+
+    // Used to break infinite loop
+    const alreadyReloaded = localStorage.getItem("reloaded-after-update");
+
+    navigator.serviceWorker
+      .register("/firebase-messaging-sw.js")
+      .then((registration) => {
+        const promptUserToRefresh = () => {
+          if (alreadyReloaded) return; // Skip if already reloaded once
+          const confirmed = window.confirm(
+            "🔄 New version available. Refresh to use the latest version?"
+          );
+          if (confirmed && registration.waiting) {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+        };
+
+        if (registration.waiting) {
+          promptUserToRefresh();
+        }
+
+        registration.onupdatefound = () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.onstatechange = () => {
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              promptUserToRefresh();
+            }
+          };
+        };
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          localStorage.setItem("reloaded-after-update", "true");
+          window.location.reload();
+        });
+      });
+
+    // Clear flag if app loaded fine
+    return () => {};
+  }, []);
+
+  // ✅ Notifications
   useEffect(() => {
     if (!currentUser) return;
 
-    // Request notification permission and save token
     requestNotificationPermission(currentUser.uid);
 
-    // Listen for foreground push notifications
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log("📩 Foreground message received:", payload);
 
@@ -84,7 +135,7 @@ function App() {
                   <>
                     <header className="mb-10 text-center">
                       <h1 className="text-4xl font-bold tracking-tight mb-3 sm:mb-2">
-                        Task Manager
+                        Task Manager3
                       </h1>
                       <div className="w-16 h-1 mx-auto bg-accent rounded"></div>
                       <p className="mt-2 text-sm text-gray-500">
