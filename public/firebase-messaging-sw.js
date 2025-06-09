@@ -47,7 +47,6 @@ self.addEventListener("message", (event) => {
   }
 });
 
-// ✅ Install + Activate logs (optional, from service-worker.js)
 self.addEventListener("install", () => {
   console.log("✅ Service Worker installed.");
 });

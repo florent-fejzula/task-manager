@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { updateDoc, Timestamp } from "firebase/firestore";
+import { updateDoc } from "firebase/firestore";
 
 function TaskMetaControls({ task, taskRef, onUpdate }) {
   const [timeLeft, setTimeLeft] = useState(null);
