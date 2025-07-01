@@ -67,6 +67,11 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
 
       const userId = parentPath.id;
 
+      console.log("⏰ MATCHED TASK:");
+      console.log("Title:", task.title);
+      console.log("User ID:", userId);
+      console.log("Time left (ms):", timeLeft);
+
       promises.push(
         db
           .collection("users")
@@ -76,6 +81,8 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
           .then((tokenSnap) => {
             const tokens = tokenSnap.docs.map((t) => t.id);
             if (tokens.length === 0) return;
+
+            console.log("📬 Found tokens:", tokens);
 
             const payload = {
               notification: {
@@ -89,9 +96,9 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
               ...payload,
             };
 
-            return messaging.sendEachForMulticast(message).then(() =>
-              doc.ref.update({notified15min: true}),
-            );
+            return messaging
+              .sendEachForMulticast(message)
+              .then(() => doc.ref.update({notified15min: true}));
           }),
       );
     }
