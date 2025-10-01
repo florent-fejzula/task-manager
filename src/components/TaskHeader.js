@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { updateDoc } from "firebase/firestore";
 
-function TaskHeader({ task, taskRef, onUpdate }) {
+/**
+ * onOpenMenu is optional; when provided, a hamburger button
+ * appears on the left to open the Side Menu.
+ */
+function TaskHeader({ task, taskRef, onUpdate, onOpenMenu }) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState(task.title);
 
@@ -14,7 +18,25 @@ function TaskHeader({ task, taskRef, onUpdate }) {
   };
 
   return (
-    <div className="mb-6 flex items-center justify-between">
+    <div className="mb-6 flex items-center justify-between gap-2">
+      {/* Hamburger (optional) */}
+      {onOpenMenu && (
+        <button
+          onClick={onOpenMenu}
+          className="p-2 rounded hover:bg-neutral-100"
+          aria-label="Open menu"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M3 6h18M3 12h18M3 18h18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+
       {editingTitle ? (
         <div className="flex-grow flex gap-2">
           <input
