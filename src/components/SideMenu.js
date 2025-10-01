@@ -1,9 +1,14 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logout from "./Logout";
+import { useAuth } from "../context/AuthContext";
+
+const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
 
 export default function SideMenu({ open, onClose }) {
   const location = useLocation();
+  const { currentUser } = useAuth();
+  const isOwner = currentUser?.uid === OWNER_UID;
 
   // close on ESC
   useEffect(() => {
@@ -75,7 +80,22 @@ export default function SideMenu({ open, onClose }) {
         </div>
 
         <nav className="p-2 space-y-1">
-          {navItem("/settings", "⚙️ Settings")}
+          {navItem("/", "Home")}
+          {navItem("/settings", "Settings")}
+          {isOwner && (
+            <Link
+              to="/amel"
+              onClick={onClose}
+              className={`block rounded-xl px-4 py-3 text-base hover:bg-neutral-100
+                ${
+                  location.pathname === "/amel"
+                    ? "bg-neutral-100 font-semibold"
+                    : ""
+                }`}
+            >
+              Amel
+            </Link>
+          )}
           <div className="px-2 pt-1">
             <Logout />
           </div>

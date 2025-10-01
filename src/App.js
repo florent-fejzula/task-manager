@@ -21,7 +21,10 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Settings from "./pages/Settings";
 import Logout from "./components/Logout";
-import SideMenu from "./components/SideMenu"; // ⬅️ add this
+import SideMenu from "./components/SideMenu";
+import Amel from "./pages/Amel";
+
+const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
 
 function TaskDetailWithSettings({ userId }) {
   const [settings, setSettings] = useState(null);
@@ -106,6 +109,7 @@ function App() {
               >
                 ⚙️ Settings
               </Link>
+
               <div className="px-2 pt-1">
                 <Logout />
               </div>
@@ -154,6 +158,16 @@ function App() {
             <Route
               path="/settings"
               element={currentUser ? <Settings /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/amel"
+              element={
+                currentUser && currentUser.uid === OWNER_UID ? (
+                  <Amel />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
             />
             <Route
               path="/login"
