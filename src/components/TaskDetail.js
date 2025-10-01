@@ -1,9 +1,10 @@
-// TaskDetail.js (refactored)
+// src/components/TaskDetail.js
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext"; // ⬅️ read cached tasks/settings
 import TaskHeader from "./TaskHeader";
 import TaskMetaControls from "./TaskMetaControls";
 import SubtaskList from "./SubtaskList";
@@ -13,28 +14,40 @@ function TaskDetail({ collapseSubtasks = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [task, setTask] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { taskMap } = useData();
+
+  // If we have it in memory, render immediately; otherwise brief spinner.
+  const [task, setTask] = useState(taskMap[id] || null);
+  const [loading, setLoading] = useState(!task);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  const taskRef = doc(db, "users", currentUser.uid, "tasks", id);
+  const taskRef = currentUser && doc(db, "users", currentUser.uid, "tasks", id);
 
+  // Live subscribe to this task (cache-first thanks to Firestore persistence)
   useEffect(() => {
-    const fetchTask = async () => {
-      const snapshot = await getDoc(taskRef);
-      if (snapshot.exists()) {
-        setTask({ id: snapshot.id, ...snapshot.data() });
+    if (!taskRef) return;
+    // show spinner only if we don't already have it in memory
+    setLoading(!taskMap[id]);
+
+    const unsub = onSnapshot(taskRef, (snap) => {
+      if (snap.exists()) {
+        setTask({ id: snap.id, ...snap.data() });
+      } else {
+        setTask(null);
       }
       setLoading(false);
-    };
-    fetchTask();
-  }, [id, currentUser.uid, taskRef]);
+    });
 
-  const handleUpdateTask = async (updates) => {
+    return () => unsub();
+  }, [id, taskRef, taskMap]);
+
+  const handleUpdateTask = (updates) => {
+    // optimistic UI; Firestore listener will confirm/adjust
     setTask((prev) => ({ ...prev, ...updates }));
   };
 
   const handleDeleteTask = async () => {
+    if (!taskRef) return;
     await deleteDoc(taskRef);
     navigate("/");
   };
@@ -61,7 +74,11 @@ function TaskDetail({ collapseSubtasks = false }) {
       </div>
 
       <TaskHeader task={task} taskRef={taskRef} onUpdate={handleUpdateTask} />
-      <TaskMetaControls task={task} taskRef={taskRef} onUpdate={handleUpdateTask} />
+      <TaskMetaControls
+        task={task}
+        taskRef={taskRef}
+        onUpdate={handleUpdateTask}
+      />
       <SubtaskList
         task={task}
         taskRef={taskRef}

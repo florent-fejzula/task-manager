@@ -23,6 +23,7 @@ import Settings from "./pages/Settings";
 import Logout from "./components/Logout";
 import SideMenu from "./components/SideMenu";
 import Amel from "./pages/Amel";
+import { DataProvider } from "./context/DataContext";
 
 const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
 
@@ -116,72 +117,76 @@ function App() {
             </nav>
           </SideMenu>
 
-          <Routes>
-            <Route
-              path="/"
-              element={
-                currentUser ? (
-                  <>
-                    <header className="mb-10 text-center">
-                      <h1 className="text-4xl font-bold tracking-tight">
-                        Task Manager 9.1
-                      </h1>
-                      <div className="w-16 h-1 mx-auto mt-2 bg-accent rounded"></div>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Stay on top of your goals, one task at a time.
-                      </p>
-                    </header>
+          <DataProvider>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  currentUser ? (
+                    <>
+                      <header className="mb-10 text-center">
+                        <h1 className="text-4xl font-bold tracking-tight">
+                          Task Manager 9.1
+                        </h1>
+                        <div className="w-16 h-1 mx-auto mt-2 bg-accent rounded"></div>
+                        <p className="mt-2 text-sm text-gray-500">
+                          Stay on top of your goals, one task at a time.
+                        </p>
+                      </header>
 
-                    <div className="mt-10">
-                      <TaskList
-                        triggerFetch={triggerFetch}
-                        setTriggerFetch={setTriggerFetch}
-                        userId={currentUser.uid}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
-            <Route
-              path="/task/:id"
-              element={
-                currentUser ? (
-                  <TaskDetailWithSettings userId={currentUser.uid} />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
-            <Route
-              path="/settings"
-              element={currentUser ? <Settings /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/amel"
-              element={
-                currentUser && currentUser.uid === OWNER_UID ? (
-                  <Amel />
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-            <Route
-              path="/login"
-              element={!currentUser ? <Login /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/signup"
-              element={!currentUser ? <SignUp /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/forgot-password"
-              element={!currentUser ? <ForgotPassword /> : <Navigate to="/" />}
-            />
-          </Routes>
+                      <div className="mt-10">
+                        <TaskList
+                          triggerFetch={triggerFetch}
+                          setTriggerFetch={setTriggerFetch}
+                          userId={currentUser.uid}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <Navigate to="/login" />
+                  )
+                }
+              />
+              <Route
+                path="/task/:id"
+                element={
+                  currentUser ? (
+                    <TaskDetailWithSettings userId={currentUser.uid} />
+                  ) : (
+                    <Navigate to="/login" />
+                  )
+                }
+              />
+              <Route
+                path="/settings"
+                element={currentUser ? <Settings /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/amel"
+                element={
+                  currentUser && currentUser.uid === OWNER_UID ? (
+                    <Amel />
+                  ) : (
+                    <Navigate to="/" />
+                  )
+                }
+              />
+              <Route
+                path="/login"
+                element={!currentUser ? <Login /> : <Navigate to="/" />}
+              />
+              <Route
+                path="/signup"
+                element={!currentUser ? <SignUp /> : <Navigate to="/" />}
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  !currentUser ? <ForgotPassword /> : <Navigate to="/" />
+                }
+              />
+            </Routes>
+          </DataProvider>
         </div>
       </div>
     </Router>
