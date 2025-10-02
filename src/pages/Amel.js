@@ -68,9 +68,6 @@ export default function Amel() {
         </p>
       </header>
 
-      {/* Create Amel */}
-      <CreateAmelForm ownerUid={OWNER_UID} />
-
       {groups.length === 0 && (
         <p className="text-sm text-gray-500">
           No actions yet. Add your first Amel above.
@@ -87,6 +84,9 @@ export default function Amel() {
           </div>
         </section>
       ))}
+
+      {/* Create Amel */}
+      <CreateAmelForm ownerUid={OWNER_UID} />
     </div>
   );
 }
