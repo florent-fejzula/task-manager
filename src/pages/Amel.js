@@ -19,7 +19,7 @@ export default function Amel() {
   const isOwner = currentUser?.uid === OWNER_UID;
   const [items, setItems] = useState([]);
 
-  // 1) Snapshot WITHOUT multi-orderBy (no index needed)
+  // Snapshot WITHOUT multi-orderBy (no index needed)
   useEffect(() => {
     if (!isOwner) return;
     const q = collection(db, "users", OWNER_UID, "amels");
@@ -29,7 +29,7 @@ export default function Amel() {
     return unsub;
   }, [isOwner]);
 
-  // 2) Sort client-side: category ASC, order ASC, createdAt ASC as tiebreaker
+  // Sort client-side: category ASC, order ASC, createdAt ASC tie-breaker
   const groups = useMemo(() => {
     const sorted = [...items].sort((a, b) => {
       const ca = (a.category || "Other").localeCompare(b.category || "Other");
@@ -230,6 +230,17 @@ function CreateAmelForm({ ownerUid }) {
 
 function AmelItem({ item, ownerUid }) {
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [tTitle, setTTitle] = useState(item.title);
+  const [tDesc, setTDesc] = useState(item.description || "");
+
+  // Keep local drafts in sync if Firestore updates while not editing
+  useEffect(() => {
+    if (!editing) {
+      setTTitle(item.title);
+      setTDesc(item.description || "");
+    }
+  }, [item.title, item.description, editing]);
 
   async function bump(doneConsecutive) {
     try {
@@ -264,17 +275,62 @@ function AmelItem({ item, ownerUid }) {
     }
   }
 
+  async function saveEdits() {
+    const title = tTitle.trim();
+    const description = tDesc.trim();
+    if (!title) return; // keep simple: require title
+    try {
+      setBusy(true);
+      const ref = doc(db, "users", ownerUid, "amels", item.id);
+      await updateDoc(ref, {
+        title,
+        description,
+        updatedAt: serverTimestamp(),
+      });
+      setEditing(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cancelEdits() {
+    setTTitle(item.title);
+    setTDesc(item.description || "");
+    setEditing(false);
+  }
+
   return (
     <div className="rounded-2xl border bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="font-medium">{item.title}</div>
-          {item.description && (
-            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+        <div className="flex-1">
+          {!editing ? (
+            <>
+              <div className="font-medium">{item.title}</div>
+              {item.description && (
+                <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <input
+                className="w-full rounded border border-neutral-300 px-3 py-2 mb-2"
+                value={tTitle}
+                onChange={(e) => setTTitle(e.target.value)}
+                placeholder="Title"
+                autoFocus
+              />
+              <textarea
+                className="w-full rounded border border-neutral-300 px-3 py-2"
+                rows={2}
+                value={tDesc}
+                onChange={(e) => setTDesc(e.target.value)}
+                placeholder="How to apply (1–2 sentences)"
+              />
+            </>
           )}
         </div>
 
-        <div className="text-right text-sm">
+        <div className="text-right text-sm shrink-0">
           <div>
             Count: <span className="font-semibold">{item.count || 0}</span>
           </div>
@@ -284,33 +340,76 @@ function AmelItem({ item, ownerUid }) {
           {typeof item.bestStreak === "number" && (
             <div className="text-gray-500">Best: {item.bestStreak}</div>
           )}
+
+          {/* Edit / Save controls */}
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="mt-2 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-black"
+              title="Edit"
+            >
+              {/* Pencil icon */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  fill="currentColor"
+                />
+                <path
+                  d="M14.06 4.94l3.75 3.75 1.77-1.77a1.5 1.5 0 0 0 0-2.12l-1.63-1.63a1.5 1.5 0 0 0-2.12 0l-1.77 1.77z"
+                  fill="currentColor"
+                />
+              </svg>
+              Edit
+            </button>
+          ) : (
+            <div className="mt-2 flex flex-col gap-1 items-end">
+              <button
+                onClick={saveEdits}
+                disabled={busy}
+                className="px-2 py-1 rounded bg-neutral-800 text-white text-xs hover:opacity-90 disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button
+                onClick={cancelEdits}
+                disabled={busy}
+                className="text-xs text-gray-600 underline"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          onClick={() => bump(false)}
-          disabled={busy}
-          className="px-3 py-1.5 rounded bg-neutral-800 text-white hover:opacity-90 disabled:opacity-50"
-        >
-          Done
-        </button>
-        <button
-          onClick={() => bump(true)}
-          disabled={busy}
-          className="px-3 py-1.5 rounded border border-neutral-300 hover:bg-neutral-100 disabled:opacity-50"
-          title="Counts + Streak +1 (you confirm it's consecutive)"
-        >
-          Consecutive Done
-        </button>
-        <button
-          onClick={resetStreak}
-          disabled={busy}
-          className="px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
-        >
-          Reset Streak
-        </button>
-      </div>
+      {!editing && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            onClick={() => bump(false)}
+            disabled={busy}
+            className="px-3 py-1.5 rounded bg-neutral-800 text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Done
+          </button>
+          <button
+            onClick={() => bump(true)}
+            disabled={busy}
+            className="px-3 py-1.5 rounded border border-neutral-300 hover:bg-neutral-100 disabled:opacity-50"
+            title="Counts + Streak +1 (you confirm it's consecutive)"
+          >
+            Consecutive Done
+          </button>
+          <button
+            onClick={resetStreak}
+            disabled={busy}
+            className="px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
+          >
+            Reset Streak
+          </button>
+        </div>
+      )}
     </div>
   );
 }
