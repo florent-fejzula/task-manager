@@ -41,29 +41,42 @@ function TaskList({ triggerFetch }) {
     grouped[task.status]?.push(task);
   });
 
-  const handleAddTask = async (newTaskTitle, newTaskStatus) => {
+  const handleAddTask = async (newTask) => {
     try {
       const docRef = await addDoc(
         collection(db, "users", currentUser.uid, "tasks"),
         {
-          title: newTaskTitle,
-          status: newTaskStatus,
+          title: newTask.title,
+          status: newTask.status,
           priority: "medium",
           createdAt: serverTimestamp(),
           subTasks: [],
+          // 🔁 Recurring fields
+          recurring: newTask.recurring || false,
+          recurringInterval: newTask.recurring
+            ? newTask.recurringInterval
+            : null,
+          lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
         }
       );
+
       setTasks((prev) => [
         {
           id: docRef.id,
-          title: newTaskTitle,
-          status: newTaskStatus,
+          title: newTask.title,
+          status: newTask.status,
           priority: "medium",
           subTasks: [],
           createdAt: new Date(),
+          recurring: newTask.recurring || false,
+          recurringInterval: newTask.recurring
+            ? newTask.recurringInterval
+            : null,
+          lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
         },
         ...prev,
       ]);
+
       setShowAddTask(false);
     } catch (err) {
       console.error("Error adding task:", err);
@@ -90,7 +103,13 @@ function TaskList({ triggerFetch }) {
         setTasks(tasksData);
 
         // 🔹 Fetch settings
-        const settingsRef = doc(db, "users", currentUser.uid, "settings", "preferences");
+        const settingsRef = doc(
+          db,
+          "users",
+          currentUser.uid,
+          "settings",
+          "preferences"
+        );
         const settingsSnap = await getDoc(settingsRef);
         if (settingsSnap.exists()) {
           setUserSettings(settingsSnap.data());
@@ -138,7 +157,8 @@ function TaskList({ triggerFetch }) {
           const getWeight = (priority) =>
             priority === "high" ? 0 : priority === "medium" ? 1 : 2;
           return (
-            getWeight(a.priority || "medium") - getWeight(b.priority || "medium")
+            getWeight(a.priority || "medium") -
+            getWeight(b.priority || "medium")
           );
         });
 

@@ -1,3 +1,4 @@
+// TaskMetaControls.js
 import { useEffect, useState } from "react";
 import { updateDoc } from "firebase/firestore";
 
@@ -11,6 +12,18 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
   const [customMinutes, setCustomMinutes] = useState(0);
   const [timerError, setTimerError] = useState("");
 
+  // --- Recurring UI state ---
+  const [recurringEnabled, setRecurringEnabled] = useState(!!task.recurring);
+  const [recurringInterval, setRecurringInterval] = useState(
+    Number(task.recurringInterval) || 7
+  );
+
+  useEffect(() => {
+    setRecurringEnabled(!!task.recurring);
+    setRecurringInterval(Number(task.recurringInterval) || 7);
+  }, [task.recurring, task.recurringInterval]);
+
+  // --- Timer countdown effect ---
   useEffect(() => {
     if (!task.timerStart || !task.timerDuration) {
       setTimeLeft(null);
@@ -41,9 +54,7 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
     const hrs = Math.floor((totalMins % (60 * 24)) / 60);
     const mins = totalMins % 60;
 
-    if (days > 0) {
-      return `${days}d ${hrs}h`;
-    }
+    if (days > 0) return `${days}d ${hrs}h`;
     return `${hrs > 0 ? `${hrs}:` : ""}${mins.toString().padStart(2, "0")}`;
   };
 
@@ -108,8 +119,40 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
     setShowCustom(false);
   };
 
+  // --- Recurring logic ---
+  const handleRecurringToggle = async (checked) => {
+    if (checked) {
+      const payload = {
+        recurring: true,
+        recurringInterval:
+          Number(recurringInterval) > 0 ? Number(recurringInterval) : 7,
+        lastOccurrence: task.lastOccurrence || Date.now(),
+      };
+      await updateDoc(taskRef, payload);
+      onUpdate(payload);
+      setRecurringEnabled(true);
+    } else {
+      const payload = {
+        recurring: false,
+        recurringInterval: null,
+        lastOccurrence: null,
+      };
+      await updateDoc(taskRef, payload);
+      onUpdate(payload);
+      setRecurringEnabled(false);
+    }
+  };
+
+  const handleRecurringIntervalSave = async () => {
+    const val = Math.max(1, Number(recurringInterval) || 1);
+    const payload = { recurringInterval: val };
+    await updateDoc(taskRef, payload);
+    onUpdate(payload);
+  };
+
   return (
     <div className="flex flex-col gap-4 mb-6">
+      {/* Status + Priority row */}
       <div className="flex gap-4">
         <select
           value={task.status}
@@ -133,12 +176,14 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         </select>
       </div>
 
+      {/* Timer display */}
       {timeLeft && (
         <div className="text-sm text-orange-600 font-medium italic">
           ⏳ {formatTimeLeft(timeLeft)} left
         </div>
       )}
 
+      {/* Timer control dropdown */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <label className="text-sm font-medium">Set Timer:</label>
@@ -162,12 +207,13 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
             defaultValue=""
           >
             <option value="">-- Choose --</option>
-            <option value="1020000">17 min (test)</option>
             <option value="1800000">30 min</option>
             <option value="3600000">1 hour</option>
             <option value="7200000">2 hours</option>
             <option value="18000000">5 hours</option>
             <option value="28800000">8 hours</option>
+            <option value="86400000">1 day</option>
+            <option value="259200000">3 days</option>
             <option value="custom">Custom…</option>
           </select>
 
@@ -181,6 +227,7 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
           )}
         </div>
 
+        {/* Custom timer form */}
         {showCustom && (
           <div className="flex items-end gap-2 flex-wrap">
             <div>
@@ -238,6 +285,33 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         )}
 
         {timerError && <div className="text-xs text-red-600">{timerError}</div>}
+      </div>
+
+      {/* 🔁 Recurring task controls */}
+      <div className="mt-2 border rounded p-3">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={recurringEnabled}
+            onChange={(e) => handleRecurringToggle(e.target.checked)}
+          />
+          <span className="text-sm font-medium">Recurring task</span>
+        </label>
+
+        {recurringEnabled && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-sm">Every</span>
+            <input
+              type="number"
+              min="1"
+              className="w-20 border px-2 py-1 rounded text-sm"
+              value={recurringInterval}
+              onChange={(e) => setRecurringInterval(e.target.value)}
+              onBlur={handleRecurringIntervalSave}
+            />
+            <span className="text-sm">days</span>
+          </div>
+        )}
       </div>
     </div>
   );
