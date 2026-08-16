@@ -47,6 +47,7 @@ function TaskList() {
           ? newTask.recurringInterval
           : null,
         lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
+        recurringOccurrenceCount: newTask.recurring ? 0 : null,
       });
 
       setShowAddTask(false);

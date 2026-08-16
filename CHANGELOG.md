@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com).
 
 ## [Unreleased]
 
+### Added
+- Recurring tasks auto-pause after 60 spawned occurrences, with a push
+  notification and a one-tap "Resume" button on the task, so a recurring
+  task can't silently generate documents forever if it's forgotten
+
 ### Planned
 - Multi-user collaboration features (assigning tasks, comments, etc.)
 - Admin panel for business use (M House)

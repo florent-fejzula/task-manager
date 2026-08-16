@@ -97,6 +97,13 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
   return null;
 });
 
+// Recurring tasks auto-pause after this many spawned occurrences, so a
+// forgotten recurring task can't silently generate documents forever (this
+// is what happened with a daily task that ran unnoticed for ~10 months).
+// The user gets a push notification when it pauses and can re-enable it
+// from the task to keep the streak going.
+const MAX_AUTO_RECUR_OCCURRENCES = 60;
+
 exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
   console.log("▶️ handleRecurringTasks triggered");
 
@@ -189,7 +196,51 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
 
         const parent = docSnap.ref.parent;
         await parent.add(newDoc);
-        await docSnap.ref.update({lastOccurrence: now});
+
+        const occurrenceCount = (Number(task.recurringOccurrenceCount) || 0) + 1;
+        const templateUpdate = {
+          lastOccurrence: now,
+          recurringOccurrenceCount: occurrenceCount,
+        };
+
+        const shouldAutoPause = occurrenceCount >= MAX_AUTO_RECUR_OCCURRENCES;
+        if (shouldAutoPause) {
+          templateUpdate.recurring = false;
+          templateUpdate.recurringPausedAt = now;
+          templateUpdate.recurringPausedReason =
+            `Auto-paused after ${occurrenceCount} occurrences on ${skDateLabel}. ` +
+            "Reopen this task and re-enable Recurring to keep it going.";
+          console.log(
+            `⏸️ Auto-pausing recurring task "${task.title}" after ${occurrenceCount} occurrences`,
+          );
+        }
+
+        await docSnap.ref.update(templateUpdate);
+
+        if (shouldAutoPause) {
+          const userId = docSnap.ref.parent.parent?.id;
+          if (userId) {
+            try {
+              const tokenSnap = await db
+                .collection("users")
+                .doc(userId)
+                .collection("tokens")
+                .get();
+              const tokens = tokenSnap.docs.map((t) => t.id.split(":")[1] || t.id);
+              if (tokens.length > 0) {
+                await messaging.sendEachForMulticast({
+                  tokens,
+                  notification: {
+                    title: "🔁 Recurring task paused",
+                    body: `"${task.title}" auto-paused after ${occurrenceCount} occurrences. Reopen it to keep the streak going.`,
+                  },
+                });
+              }
+            } catch (notifyErr) {
+              console.error("🔥 Error sending recurring-pause notification:", notifyErr);
+            }
+          }
+        }
       } else {
         console.log(
           `⏭️ Skipping ${task.title} (daysSince=${daysSince.toFixed(

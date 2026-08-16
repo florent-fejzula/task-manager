@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { updateDoc } from "firebase/firestore";
 
+// Must match MAX_AUTO_RECUR_OCCURRENCES in functions/index.js — shown here
+// purely for display, the actual cap is enforced server-side.
+const MAX_AUTO_RECUR_OCCURRENCES = 60;
+
 function TaskMetaControls({ task, taskRef, onUpdate }) {
   const [timeLeft, setTimeLeft] = useState(null);
 
@@ -127,6 +131,11 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         recurringInterval:
           Number(recurringInterval) > 0 ? Number(recurringInterval) : 7,
         lastOccurrence: task.lastOccurrence || Date.now(),
+        // (Re)starts the auto-pause counter, including when resuming a
+        // task that was auto-paused after hitting the occurrence cap.
+        recurringOccurrenceCount: 0,
+        recurringPausedAt: null,
+        recurringPausedReason: null,
       };
       await updateDoc(taskRef, payload);
       onUpdate(payload);
@@ -136,6 +145,9 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         recurring: false,
         recurringInterval: null,
         lastOccurrence: null,
+        recurringOccurrenceCount: null,
+        recurringPausedAt: null,
+        recurringPausedReason: null,
       };
       await updateDoc(taskRef, payload);
       onUpdate(payload);
@@ -289,6 +301,20 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
 
       {/* 🔁 Recurring task controls */}
       <div className="mt-2 border rounded p-3">
+        {!recurringEnabled && task.recurringPausedReason && (
+          <div className="mb-3 flex items-start justify-between gap-3 rounded bg-amber-50 border border-amber-200 p-2">
+            <p className="text-xs text-amber-800">
+              ⏸️ {task.recurringPausedReason}
+            </p>
+            <button
+              onClick={() => handleRecurringToggle(true)}
+              className="shrink-0 text-xs px-2 py-1 rounded bg-amber-600 text-white hover:opacity-90"
+            >
+              Resume
+            </button>
+          </div>
+        )}
+
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -311,6 +337,14 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
             />
             <span className="text-sm">days</span>
           </div>
+        )}
+
+        {recurringEnabled && task.recurringOccurrenceCount > 0 && (
+          <p className="mt-2 text-xs text-gray-500">
+            Repeated {task.recurringOccurrenceCount} time
+            {task.recurringOccurrenceCount === 1 ? "" : "s"} so far. Auto-pauses
+            after {MAX_AUTO_RECUR_OCCURRENCES} to make sure you notice it.
+          </p>
         )}
       </div>
     </div>

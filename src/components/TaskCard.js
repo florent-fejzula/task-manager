@@ -115,6 +115,15 @@ function TaskCard({
         </div>
       ) : null}
 
+      {!task.recurring && task.recurringPausedReason && (
+        <Link
+          to={`/task/${task.id}`}
+          className="block text-xs text-amber-700 font-medium mb-1 ml-1 hover:underline"
+        >
+          ⏸️ Recurring paused — open task to resume
+        </Link>
+      )}
+
       {/* Timer display */}
       {timeLeft && (
         <div className="text-sm text-orange-600 mb-2 font-medium italic">
