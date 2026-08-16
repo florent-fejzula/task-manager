@@ -4,6 +4,19 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import "./index.css";
 
+// ✅ Force a real reload if the page was restored from the back/forward
+// cache instead of freshly loaded. This is common for installed/standalone
+// PWAs on Android Chrome, which can resume a frozen snapshot of the last
+// session on launch — bypassing the network (and any Cache-Control
+// headers) entirely, so it can silently keep running old code after a
+// deploy unless we detect and correct for it here.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    console.log("♻️ Page restored from bfcache — forcing reload");
+    window.location.reload();
+  }
+});
+
 // ✅ Service Worker Registration
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

@@ -31,8 +31,12 @@ exports.testPush = functions.https.onRequest(async (req, res) => {
       return res.status(404).send("❌ No FCM tokens found.");
     }
 
+    // data-only, not `notification` — a top-level `notification` field gets
+    // auto-displayed by the browser/OS on top of our own showNotification()
+    // call in sw.js, producing duplicate notifications. Data-only messages
+    // give us the only call that ever displays anything.
     const payload = {
-      notification: {
+      data: {
         title: "🚀 Test Push",
         body: "This is a test push notification from Cloud Functions.",
       },
@@ -89,9 +93,10 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
             const tokens = tokenSnap.docs.map((t) => t.id);
             if (tokens.length === 0) return;
 
+            // data-only — see note in testPush about why.
             const message = {
               tokens,
-              notification: {
+              data: {
                 title: "⏰ 15 Minutes Left!",
                 body: `Your task "${task.title}" is running out of time.`,
               },
@@ -255,9 +260,10 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
               // Doc ID IS the full FCM token — send as-is.
               const tokens = tokenSnap.docs.map((t) => t.id);
               if (tokens.length > 0) {
+                // data-only — see note in testPush about why.
                 await messaging.sendEachForMulticast({
                   tokens,
-                  notification: {
+                  data: {
                     title: "🔁 Recurring task paused",
                     body: `"${task.title}" auto-paused: ${unaddressedCount} spawned occurrences in a row are untouched. Catch up, then reopen it to resume.`,
                   },

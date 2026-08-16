@@ -26,10 +26,13 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function (payload) {
   console.log("[sw.js] Background message received:", payload);
 
-  const notificationTitle = payload.notification.title;
+  // Cloud Functions now send data-only messages (no top-level `notification`
+  // field) specifically so nothing gets auto-displayed except this call.
+  const notificationTitle = payload.data?.title;
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.data?.body,
     icon: "/icon-192.png",
+    tag: payload.messageId,
   };
 
   console.log("🎉 Showing notification popup");

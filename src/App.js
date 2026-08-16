@@ -63,15 +63,14 @@ function App() {
 
     requestNotificationPermission(currentUser.uid);
 
+    // sw.js's onBackgroundMessage handler already displays incoming pushes,
+    // and does so even while this tab is in the foreground (confirmed: both
+    // this handler and the service worker were firing for the same
+    // message, producing duplicate notifications). So this listener is
+    // just for logging/observability now — it must not also call
+    // showNotification/Notification(), or every push shows twice.
     const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("📩 Foreground message received:", payload);
-
-      if (Notification.permission === "granted") {
-        new Notification(payload.notification.title, {
-          body: payload.notification.body,
-          icon: "/icons/icon-192x192.png",
-        });
-      }
+      console.log("📩 Foreground message received (sw.js handles display):", payload);
     });
 
     return () => unsubscribe();

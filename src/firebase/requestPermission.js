@@ -21,9 +21,18 @@ export const requestNotificationPermission = async (userId) => {
 
     console.log("✅ Notification permission granted.");
 
+    // Without this, getToken() tries to auto-register a file called
+    // /firebase-messaging-sw.js, which doesn't exist in this project (only
+    // the custom /sw.js does) — the SPA rewrite then serves index.html for
+    // that request, and registration fails with an "unsupported MIME type"
+    // error. Point it at the already-active custom service worker instead,
+    // which already has the onBackgroundMessage handler wired up.
+    const swRegistration = await navigator.serviceWorker.ready;
+
     const token = await getToken(messaging, {
       vapidKey:
         "BE0-osB5nIY4eFpOFNOdACGPHa-xc51R13V5jGILrdMbO3rIc-I-XZTYd0W7qjRwGtDswhP9jO9YKoDXne6-Ego", // already replaced
+      serviceWorkerRegistration: swRegistration,
     });
 
     if (!token) {
