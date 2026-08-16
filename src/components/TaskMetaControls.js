@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { updateDoc } from "firebase/firestore";
 
-// Must match MAX_AUTO_RECUR_OCCURRENCES in functions/index.js — shown here
-// purely for display, the actual cap is enforced server-side.
-const MAX_AUTO_RECUR_OCCURRENCES = 60;
+// Must match MAX_UNADDRESSED_RECUR_BACKLOG in functions/index.js — shown
+// here purely for display, the actual cap is enforced server-side.
+const MAX_UNADDRESSED_RECUR_BACKLOG = 5;
 
 function TaskMetaControls({ task, taskRef, onUpdate }) {
   const [timeLeft, setTimeLeft] = useState(null);
@@ -343,7 +343,8 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
           <p className="mt-2 text-xs text-gray-500">
             Repeated {task.recurringOccurrenceCount} time
             {task.recurringOccurrenceCount === 1 ? "" : "s"} so far. Auto-pauses
-            after {MAX_AUTO_RECUR_OCCURRENCES} to make sure you notice it.
+            if {MAX_UNADDRESSED_RECUR_BACKLOG} spawned occurrences in a row go
+            untouched, so it can't pile up unnoticed.
           </p>
         )}
       </div>

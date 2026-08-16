@@ -97,12 +97,14 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
   return null;
 });
 
-// Recurring tasks auto-pause after this many spawned occurrences, so a
-// forgotten recurring task can't silently generate documents forever (this
-// is what happened with a daily task that ran unnoticed for ~10 months).
-// The user gets a push notification when it pauses and can re-enable it
-// from the task to keep the streak going.
-const MAX_AUTO_RECUR_OCCURRENCES = 60;
+// If this many previously-spawned occurrences of a recurring task are still
+// sitting untouched (status still "in-progress" — never closed, never
+// changed), the task auto-pauses instead of continuing to spawn more. This
+// is what should have caught a daily task that ran unnoticed for ~10
+// months: nobody was responding to the spawned copies, but it kept
+// generating new ones anyway. The user gets a push notification when it
+// pauses and can re-enable it from the task to keep going.
+const MAX_UNADDRESSED_RECUR_BACKLOG = 5;
 
 exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
   console.log("▶️ handleRecurringTasks triggered");
@@ -192,6 +194,9 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
           recurring: false,
           recurringInterval: null,
           lastOccurrence: null,
+          // Links this spawned copy back to the recurring template, so we
+          // can tell how big its unaddressed backlog is.
+          recurringSourceId: docSnap.id,
         };
 
         const parent = docSnap.ref.parent;
@@ -203,15 +208,24 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
           recurringOccurrenceCount: occurrenceCount,
         };
 
-        const shouldAutoPause = occurrenceCount >= MAX_AUTO_RECUR_OCCURRENCES;
+        // Count spawned copies (including the one we just created) that
+        // are still sitting at their default status — i.e. nobody has
+        // closed them, reopened them, or otherwise touched them at all.
+        const backlogSnap = await parent
+          .where("recurringSourceId", "==", docSnap.id)
+          .where("status", "==", "in-progress")
+          .get();
+        const unaddressedCount = backlogSnap.size;
+
+        const shouldAutoPause = unaddressedCount >= MAX_UNADDRESSED_RECUR_BACKLOG;
         if (shouldAutoPause) {
           templateUpdate.recurring = false;
           templateUpdate.recurringPausedAt = now;
           templateUpdate.recurringPausedReason =
-            `Auto-paused after ${occurrenceCount} occurrences on ${skDateLabel}. ` +
-            "Reopen this task and re-enable Recurring to keep it going.";
+            `Auto-paused: ${unaddressedCount} spawned occurrences in a row are still ` +
+            "untouched. Catch up on them, then reopen this task and re-enable Recurring.";
           console.log(
-            `⏸️ Auto-pausing recurring task "${task.title}" after ${occurrenceCount} occurrences`,
+            `⏸️ Auto-pausing recurring task "${task.title}" — ${unaddressedCount} untouched occurrences`,
           );
         }
 
@@ -232,7 +246,7 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
                   tokens,
                   notification: {
                     title: "🔁 Recurring task paused",
-                    body: `"${task.title}" auto-paused after ${occurrenceCount} occurrences. Reopen it to keep the streak going.`,
+                    body: `"${task.title}" auto-paused: ${unaddressedCount} spawned occurrences in a row are untouched. Catch up, then reopen it to resume.`,
                   },
                 });
               }

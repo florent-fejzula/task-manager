@@ -8,9 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
-- Recurring tasks auto-pause after 60 spawned occurrences, with a push
+- Recurring tasks auto-pause if 5 spawned occurrences in a row go
+  untouched (still "in-progress", never closed or changed), with a push
   notification and a one-tap "Resume" button on the task, so a recurring
-  task can't silently generate documents forever if it's forgotten
+  task can't silently pile up unaddressed copies if it's forgotten
 
 ### Planned
 - Multi-user collaboration features (assigning tasks, comments, etc.)
