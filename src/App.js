@@ -24,8 +24,7 @@ import Logout from "./components/Logout";
 import SideMenu from "./components/SideMenu";
 import Amel from "./pages/Amel";
 import { DataProvider } from "./context/DataContext";
-
-const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
+import { OWNER_UID } from "./config";
 
 function TaskDetailWithSettings({ userId }) {
   const [settings, setSettings] = useState(null);
@@ -53,7 +52,6 @@ function TaskDetailWithSettings({ userId }) {
 }
 
 function App() {
-  const [triggerFetch, setTriggerFetch] = useState(false);
   const { currentUser } = useAuth();
 
   // side menu state
@@ -135,11 +133,7 @@ function App() {
                       </header>
 
                       <div className="mt-10">
-                        <TaskList
-                          triggerFetch={triggerFetch}
-                          setTriggerFetch={setTriggerFetch}
-                          userId={currentUser.uid}
-                        />
+                        <TaskList />
                       </div>
                     </>
                   ) : (

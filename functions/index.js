@@ -47,7 +47,10 @@ exports.testPush = functions.https.onRequest(async (req, res) => {
 // ✅ 15-minute timer notifications
 exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
   const now = Date.now();
-  const snapshot = await db.collectionGroup("tasks").get();
+  // Only scan tasks that actually have a timer running, instead of every
+  // task document for every user (requires the timerStart field-override
+  // index in firestore.indexes.json).
+  const snapshot = await db.collectionGroup("tasks").where("timerStart", ">", 0).get();
 
   const promises = [];
 
@@ -202,11 +205,4 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
     console.error("🔥 Error in handleRecurringTasks:", err);
     throw err;
   }
-});
-
-// ✅ Test scheduler
-exports.testScheduler = onSchedule("every 5 minutes", async () => {
-  const now = new Date().toLocaleString("en-GB", {timeZone: "Europe/Skopje"});
-  console.log("🕐 testScheduler fired at:", now);
-  return null;
 });

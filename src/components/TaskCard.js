@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
+import { useSubtasks } from "../hooks/useSubtasks";
 
 function TaskCard({
   task,
@@ -12,6 +13,16 @@ function TaskCard({
 }) {
   const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+
+  const taskRef = useMemo(
+    () => doc(db, "users", currentUser.uid, "tasks", task.id),
+    [currentUser.uid, task.id]
+  );
+  const { toggleSubTask, deleteSubTask, addSubTask } = useSubtasks(
+    taskRef,
+    task.subTasks,
+    (updated) => onSubTaskUpdate?.(task.id, updated)
+  );
 
   useEffect(() => {
     if (typeof collapseSubtasks === "boolean") {
@@ -50,56 +61,23 @@ function TaskCard({
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     try {
-      const taskRef = doc(db, "users", currentUser.uid, "tasks", task.id);
       await updateDoc(taskRef, { status: newStatus });
-      onStatusChange(task.id, newStatus);
+      onStatusChange?.(task.id, newStatus);
     } catch (err) {
       console.error("Error updating status:", err);
     }
   };
 
-  const handleToggleSubTask = async (index) => {
-    const updated = [...(task.subTasks || [])];
-    const sub = updated[index];
+  const handleToggleSubTask = (index) => toggleSubTask(index);
 
-    if (!sub.done && !sub.inProgress) {
-      sub.inProgress = true;
-    } else if (!sub.done && sub.inProgress) {
-      sub.done = true;
-      sub.inProgress = false;
-    } else {
-      sub.done = false;
-      sub.inProgress = false;
-    }
-
-    await updateDoc(doc(db, "users", currentUser.uid, "tasks", task.id), {
-      subTasks: updated,
-    });
-    onSubTaskUpdate(task.id, updated);
-  };
-
-  const handleDeleteSubTask = async (index) => {
-    const updated = [...(task.subTasks || [])];
-    updated.splice(index, 1);
-    await updateDoc(doc(db, "users", currentUser.uid, "tasks", task.id), {
-      subTasks: updated,
-    });
-    onSubTaskUpdate(task.id, updated);
-  };
+  const handleDeleteSubTask = (index) => deleteSubTask(index);
 
   const handleAddSubTask = async (e) => {
     e.preventDefault();
     const input = e.target.elements[`sub-${task.id}`];
     const title = input.value.trim();
     if (!title) return;
-    const updated = [
-      ...(task.subTasks || []),
-      { title, done: false, inProgress: false },
-    ];
-    await updateDoc(doc(db, "users", currentUser.uid, "tasks", task.id), {
-      subTasks: updated,
-    });
-    onSubTaskUpdate(task.id, updated);
+    await addSubTask(title);
     input.value = "";
   };
 

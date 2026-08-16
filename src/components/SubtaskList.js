@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { updateDoc } from "firebase/firestore";
+import { useSubtasks } from "../hooks/useSubtasks";
 
 function SubtaskList({ task, taskRef, onUpdate, collapseSubtasks }) {
   const [showDoneSubTasks, setShowDoneSubTasks] = useState(false);
@@ -11,39 +11,16 @@ function SubtaskList({ task, taskRef, onUpdate, collapseSubtasks }) {
     }
   }, [collapseSubtasks]);
 
-  const toggleSubTask = async (index) => {
-    const updated = [...task.subTasks];
-    const sub = updated[index];
-
-    if (!sub.done && !sub.inProgress) {
-      sub.inProgress = true;
-    } else if (!sub.done && sub.inProgress) {
-      sub.done = true;
-      sub.inProgress = false;
-    } else {
-      sub.done = false;
-      sub.inProgress = false;
-    }
-
-    await updateDoc(taskRef, { subTasks: updated });
-    onUpdate({ subTasks: updated });
-  };
-
-  const deleteSubTask = async (index) => {
-    const updated = [...task.subTasks];
-    updated.splice(index, 1);
-    await updateDoc(taskRef, { subTasks: updated });
-    onUpdate({ subTasks: updated });
-  };
+  const { toggleSubTask, deleteSubTask, addSubTask } = useSubtasks(
+    taskRef,
+    task.subTasks,
+    (updated) => onUpdate({ subTasks: updated })
+  );
 
   const handleAddSubtask = async (e) => {
     e.preventDefault();
-    const title = newSubtask.trim();
-    if (!title) return;
-
-    const updated = [...(task.subTasks || []), { title, done: false, inProgress: false }];
-    await updateDoc(taskRef, { subTasks: updated });
-    onUpdate({ subTasks: updated });
+    if (!newSubtask.trim()) return;
+    await addSubTask(newSubtask);
     setNewSubtask("");
   };
 

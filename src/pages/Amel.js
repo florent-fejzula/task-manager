@@ -10,9 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
-
-// ⬅️ set this to your real UID (same as routing & rules)
-const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
+import { OWNER_UID } from "../config";
 
 export default function Amel() {
   const { currentUser } = useAuth();

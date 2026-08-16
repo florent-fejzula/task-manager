@@ -1,27 +1,17 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  addDoc,
-  serverTimestamp,
-  doc,
-  getDoc,
-} from "firebase/firestore";
+import { useState } from "react";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext";
 import TaskCard from "./TaskCard";
 import AddTaskForm from "./AddTaskForm";
 
-function TaskList({ triggerFetch }) {
+function TaskList() {
   const { currentUser } = useAuth();
-  const [tasks, setTasks] = useState([]);
+  const { tasks, settings, loading } = useData();
   const [showAddTask, setShowAddTask] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userSettings, setUserSettings] = useState({});
 
   const grouped = {
     todo: [],
@@ -43,39 +33,21 @@ function TaskList({ triggerFetch }) {
 
   const handleAddTask = async (newTask) => {
     try {
-      const docRef = await addDoc(
-        collection(db, "users", currentUser.uid, "tasks"),
-        {
-          title: newTask.title,
-          status: newTask.status,
-          priority: "medium",
-          createdAt: serverTimestamp(),
-          subTasks: [],
-          // 🔁 Recurring fields
-          recurring: newTask.recurring || false,
-          recurringInterval: newTask.recurring
-            ? newTask.recurringInterval
-            : null,
-          lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
-        }
-      );
-
-      setTasks((prev) => [
-        {
-          id: docRef.id,
-          title: newTask.title,
-          status: newTask.status,
-          priority: "medium",
-          subTasks: [],
-          createdAt: new Date(),
-          recurring: newTask.recurring || false,
-          recurringInterval: newTask.recurring
-            ? newTask.recurringInterval
-            : null,
-          lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
-        },
-        ...prev,
-      ]);
+      // No local state to update here: DataContext's live listener will
+      // pick up the new task as soon as Firestore echoes the write.
+      await addDoc(collection(db, "users", currentUser.uid, "tasks"), {
+        title: newTask.title,
+        status: newTask.status,
+        priority: "medium",
+        createdAt: serverTimestamp(),
+        subTasks: [],
+        // 🔁 Recurring fields
+        recurring: newTask.recurring || false,
+        recurringInterval: newTask.recurring
+          ? newTask.recurringInterval
+          : null,
+        lastOccurrence: newTask.recurring ? newTask.lastOccurrence : null,
+      });
 
       setShowAddTask(false);
     } catch (err) {
@@ -84,48 +56,6 @@ function TaskList({ triggerFetch }) {
   };
 
   const sortedStatuses = ["in-progress", "todo", "on-hold", "done"];
-
-  useEffect(() => {
-    const fetchTasksAndSettings = async () => {
-      try {
-        setLoading(true);
-
-        // 🔹 Fetch tasks
-        const q = query(
-          collection(db, "users", currentUser.uid, "tasks"),
-          orderBy("createdAt", "desc")
-        );
-        const snapshot = await getDocs(q);
-        const tasksData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setTasks(tasksData);
-
-        // 🔹 Fetch settings
-        const settingsRef = doc(
-          db,
-          "users",
-          currentUser.uid,
-          "settings",
-          "preferences"
-        );
-        const settingsSnap = await getDoc(settingsRef);
-        if (settingsSnap.exists()) {
-          setUserSettings(settingsSnap.data());
-        } else {
-          setUserSettings({});
-        }
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching tasks or settings:", err);
-        setLoading(false);
-      }
-    };
-
-    if (currentUser?.uid) fetchTasksAndSettings();
-  }, [triggerFetch, currentUser?.uid]);
 
   if (loading) {
     return (
@@ -191,23 +121,7 @@ function TaskList({ triggerFetch }) {
                     key={task.id}
                     task={task}
                     currentUser={currentUser}
-                    collapseSubtasks={userSettings?.collapseCompletedSubtasks}
-                    onStatusChange={(taskId, newStatus) =>
-                      setTasks((prev) =>
-                        prev.map((t) =>
-                          t.id === taskId ? { ...t, status: newStatus } : t
-                        )
-                      )
-                    }
-                    onSubTaskUpdate={(taskId, updatedSubTasks) =>
-                      setTasks((prev) =>
-                        prev.map((t) =>
-                          t.id === taskId
-                            ? { ...t, subTasks: updatedSubTasks }
-                            : t
-                        )
-                      )
-                    }
+                    collapseSubtasks={settings?.collapseCompletedSubtasks}
                   />
                 ))}
               </ul>

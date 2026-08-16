@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isOwner() {
+      return isSignedIn() && request.auth.uid == "J89IeSZy3nMy9J3adoGMv2eUr7S2";
+    }
+
+    // --- Amel: owner-only (even if others are signed in) ---
+    match /users/{userId}/amels/{amelId} {
+      allow read, write: if isOwner() && userId == request.auth.uid;
+    }
+
+    // --- Generic user data (tasks, settings, tokens, etc.) ---
+    // Each user can only read/write their own sub-tree under /users/{uid}
+    match /users/{userId}/{document=**} {
+      allow read, write: if isUser(userId);
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

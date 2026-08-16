@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logout from "./Logout";
 import { useAuth } from "../context/AuthContext";
-
-const OWNER_UID = "J89IeSZy3nMy9J3adoGMv2eUr7S2";
+import { OWNER_UID } from "../config";
 
 export default function SideMenu({ open, onClose }) {
   const location = useLocation();
