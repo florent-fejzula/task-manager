@@ -1,4 +1,13 @@
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { getToken } from "firebase/messaging";
 import { messaging, db } from "./firebase";
 
@@ -24,25 +33,32 @@ export const requestNotificationPermission = async (userId) => {
 
     console.log("✅ FCM Token:", token);
 
-    const tokenRef = doc(db, "users", userId, "tokens", token);
     const tokensRef = collection(db, "users", userId, "tokens");
-    const existing = await getDocs(tokensRef);
+    const tokenRef = doc(tokensRef, token);
+    const existingSnap = await getDoc(tokenRef);
 
-    const alreadyExists = existing.docs.some(
-      (docSnap) =>
-        docSnap.id === token ||
-        docSnap.data()?.userAgent === navigator.userAgent
-    );
+    if (existingSnap.exists()) {
+      console.log("ℹ️ This exact token is already registered.");
+      return;
+    }
 
-    if (!alreadyExists) {
-      console.log("🟡 Saving new token with userAgent:", navigator.userAgent);
-      await setDoc(tokenRef, {
-        createdAt: Date.now(),
-        userAgent: navigator.userAgent,
-      });
-      console.log("✅ Token saved to Firestore with userAgent.");
-    } else {
-      console.log("ℹ️ Token or device already registered.");
+    // No doc for this exact token — either first time on this device, or
+    // FCM rotated the token since we last saved one. Either way, save it.
+    console.log("🟡 Saving new token with userAgent:", navigator.userAgent);
+    await setDoc(tokenRef, {
+      createdAt: Date.now(),
+      userAgent: navigator.userAgent,
+    });
+    console.log("✅ Token saved to Firestore with userAgent.");
+
+    // Clean up any older, now-superseded tokens for this same device so
+    // dead tokens don't pile up and get sent to on every notification.
+    const staleQuery = query(tokensRef, where("userAgent", "==", navigator.userAgent));
+    const staleSnap = await getDocs(staleQuery);
+    const stale = staleSnap.docs.filter((d) => d.id !== token);
+    if (stale.length > 0) {
+      await Promise.all(stale.map((d) => deleteDoc(d.ref)));
+      console.log(`🧹 Removed ${stale.length} stale token(s) for this device.`);
     }
   } catch (err) {
     console.error("🔥 Error getting FCM token:", err);

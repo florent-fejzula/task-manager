@@ -23,7 +23,9 @@ exports.testPush = functions.https.onRequest(async (req, res) => {
       .collection("tokens")
       .get();
 
-    const tokens = tokenSnap.docs.map((t) => t.id.split(":")[1] || t.id);
+    // The Firestore doc ID IS the full FCM token (see requestPermission.js) —
+    // it must be sent as-is, not split apart.
+    const tokens = tokenSnap.docs.map((t) => t.id);
     if (tokens.length === 0) {
       console.log("❌ No tokens found.");
       return res.status(404).send("❌ No FCM tokens found.");
@@ -36,8 +38,19 @@ exports.testPush = functions.https.onRequest(async (req, res) => {
       },
     };
 
-    await messaging.sendEachForMulticast({tokens, ...payload});
-    return res.status(200).send("✅ Notification sent!");
+    const result = await messaging.sendEachForMulticast({tokens, ...payload});
+    const failures = result.responses
+      .map((r, i) => ({r, token: tokens[i]}))
+      .filter(({r}) => !r.success)
+      .map(({r, token}) => `${token.slice(0, 12)}...: ${r.error?.code}`);
+
+    console.log(`✅ ${result.successCount}/${tokens.length} sent.`, failures);
+    return res
+      .status(200)
+      .send(
+        `✅ Sent to ${result.successCount}/${tokens.length} tokens.` +
+          (failures.length ? ` Failures: ${failures.join("; ")}` : ""),
+      );
   } catch (error) {
     console.error("🔥 Error sending test notification:", error);
     return res.status(500).send(`🔥 Error: ${error.message}`);
@@ -72,9 +85,8 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
           .collection("tokens")
           .get()
           .then((tokenSnap) => {
-            const tokens = tokenSnap.docs.map(
-              (t) => t.id.split(":")[1] || t.id,
-            );
+            // Doc ID IS the full FCM token — send as-is.
+            const tokens = tokenSnap.docs.map((t) => t.id);
             if (tokens.length === 0) return;
 
             const message = {
@@ -240,7 +252,8 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
                 .doc(userId)
                 .collection("tokens")
                 .get();
-              const tokens = tokenSnap.docs.map((t) => t.id.split(":")[1] || t.id);
+              // Doc ID IS the full FCM token — send as-is.
+              const tokens = tokenSnap.docs.map((t) => t.id);
               if (tokens.length > 0) {
                 await messaging.sendEachForMulticast({
                   tokens,
