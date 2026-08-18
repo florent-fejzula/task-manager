@@ -27,6 +27,15 @@ function TaskList() {
     done: "Closed",
   };
 
+  // Subtle per-section tint + dot so scrolling past a long list still
+  // reads as distinct groups instead of one continuous list.
+  const statusStyles = {
+    "in-progress": { bg: "bg-blue-50/60", dot: "bg-blue-500" },
+    todo: { bg: "bg-slate-50/70", dot: "bg-slate-400" },
+    "on-hold": { bg: "bg-amber-50/60", dot: "bg-amber-500" },
+    done: { bg: "bg-emerald-50/50", dot: "bg-emerald-500" },
+  };
+
   tasks.forEach((task) => {
     grouped[task.status]?.push(task);
   });
@@ -94,16 +103,21 @@ function TaskList() {
         });
 
         const isClosed = taskStatus === "done";
+        const style = statusStyles[taskStatus];
 
         return (
-          <div key={taskStatus} className="mb-10">
+          <div
+            key={taskStatus}
+            className={`mb-8 rounded-2xl p-4 ${style.bg}`}
+          >
             <div
-              className={`text-accent font-serif italic text-lg mb-2 border-b border-gray-200 pb-1 flex justify-between items-center cursor-pointer ${
+              className={`text-accent font-serif italic text-lg mb-2 border-b border-black/5 pb-1 flex justify-between items-center cursor-pointer ${
                 isClosed ? "hover:opacity-80" : ""
               }`}
               onClick={() => isClosed && setShowClosed((prev) => !prev)}
             >
-              <span>
+              <span className="flex items-center gap-2">
+                <span className={`inline-block w-2 h-2 rounded-full ${style.dot}`} />
                 {displayStatus}
                 {isClosed && ` (${group.length})`}
               </span>
