@@ -65,7 +65,15 @@ function TaskCard({
       const updates = { status: newStatus };
       if (newStatus === "done") {
         const outcome = getCompletionTimerOutcome(task);
-        if (outcome) updates.timerOutcome = outcome;
+        if (outcome) {
+          updates.timerOutcome = outcome;
+          // Clear the timer itself — closing a task well before its
+          // deadline would otherwise leave a stale timerStart/timerDuration
+          // that can trigger a "15 minutes left" notification hours later.
+          updates.timerStart = null;
+          updates.timerDuration = null;
+          updates.notified15min = null;
+        }
       }
       await updateDoc(taskRef, updates);
       onStatusChange?.(task.id, newStatus);

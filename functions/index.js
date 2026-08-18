@@ -74,7 +74,12 @@ exports.send15MinuteNotification = onSchedule("every 1 minutes", async () => {
   snapshot.forEach((doc) => {
     const task = doc.data();
     const {timerStart, timerDuration, notified15min} = task;
-    if (!timerStart || !timerDuration || notified15min) return;
+    // Marking a task done doesn't clear its timer fields, so a task closed
+    // well before its deadline can still sit there with a stale
+    // timerStart/timerDuration — without this check, this function would
+    // fire a "15 minutes left" notification hours later once real time
+    // catches up to that window, for a task that's long since closed.
+    if (!timerStart || !timerDuration || notified15min || task.status === "done") return;
 
     const timeLeft = timerStart + timerDuration - now;
     if (timeLeft < 15 * 60 * 1000 && timeLeft > 13 * 60 * 1000) {
