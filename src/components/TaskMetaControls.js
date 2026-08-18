@@ -171,11 +171,11 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
   return (
     <div className="flex flex-col gap-4 mb-6">
       {/* Status + Priority row */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3">
         <select
           value={task.status}
           onChange={handleStatusChange}
-          className="border border-gray-300 rounded px-3 py-1"
+          className="flex-1 min-w-[140px] border border-gray-300 rounded px-3 py-1"
         >
           <option value="todo">To Do</option>
           <option value="in-progress">In Progress</option>
@@ -186,7 +186,7 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         <select
           value={task.priority || "medium"}
           onChange={handlePriorityChange}
-          className="border border-gray-300 rounded px-3 py-1"
+          className="flex-1 min-w-[140px] border border-gray-300 rounded px-3 py-1"
         >
           <option value="high">High Priority</option>
           <option value="medium">Medium Priority</option>
