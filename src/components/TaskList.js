@@ -30,10 +30,13 @@ function TaskList() {
   // Subtle per-section tint + dot so scrolling past a long list still
   // reads as distinct groups instead of one continuous list.
   const statusStyles = {
-    "in-progress": { bg: "bg-blue-50/60", dot: "bg-blue-500" },
-    todo: { bg: "bg-slate-50/70", dot: "bg-slate-400" },
+    "in-progress": { bg: "bg-green-50/60", dot: "bg-green-500" },
+    todo: { bg: "bg-blue-50/60", dot: "bg-blue-500" },
     "on-hold": { bg: "bg-amber-50/60", dot: "bg-amber-500" },
-    done: { bg: "bg-emerald-50/50", dot: "bg-emerald-500" },
+    // Kept distinct from the new green In Progress so Closed doesn't blend
+    // into it — gray also matches Closed already being the de-emphasized,
+    // collapsed-by-default section.
+    done: { bg: "bg-slate-50/70", dot: "bg-slate-400" },
   };
 
   tasks.forEach((task) => {
