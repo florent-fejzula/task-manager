@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import TaskCard from "./TaskCard";
 import AddTaskForm from "./AddTaskForm";
+import { isTimerMissed } from "../utils/timerStatus";
 
 function TaskList() {
   const { currentUser } = useAuth();
@@ -42,6 +43,16 @@ function TaskList() {
   tasks.forEach((task) => {
     grouped[task.status]?.push(task);
   });
+
+  const timerStats = tasks.reduce(
+    (acc, task) => {
+      if (task.timerOutcome === "on-time") acc.onTime += 1;
+      else if (task.timerOutcome === "missed") acc.missed += 1;
+      else if (isTimerMissed(task)) acc.missed += 1; // still open, already overdue
+      return acc;
+    },
+    { onTime: 0, missed: 0 }
+  );
 
   const handleAddTask = async (newTask) => {
     try {
@@ -147,6 +158,20 @@ function TaskList() {
           </div>
         );
       })}
+
+      {(timerStats.onTime > 0 || timerStats.missed > 0) && (
+        <div className="mt-2 text-center text-sm text-gray-500">
+          Completed on time:{" "}
+          <span className="font-semibold text-green-600">
+            {timerStats.onTime}
+          </span>
+          <span className="mx-2 text-gray-300">|</span>
+          ⏰ Missed:{" "}
+          <span className="font-semibold text-red-600">
+            {timerStats.missed}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

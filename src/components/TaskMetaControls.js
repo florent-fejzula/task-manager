@@ -1,6 +1,7 @@
 // TaskMetaControls.js
 import { useEffect, useState } from "react";
 import { updateDoc } from "firebase/firestore";
+import { isTimerMissed, getCompletionTimerOutcome } from "../utils/timerStatus";
 
 // Must match MAX_UNADDRESSED_RECUR_BACKLOG in functions/index.js — shown
 // here purely for display, the actual cap is enforced server-side.
@@ -64,8 +65,13 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    await updateDoc(taskRef, { status: newStatus });
-    onUpdate({ status: newStatus });
+    const updates = { status: newStatus };
+    if (newStatus === "done") {
+      const outcome = getCompletionTimerOutcome(task);
+      if (outcome) updates.timerOutcome = outcome;
+    }
+    await updateDoc(taskRef, updates);
+    onUpdate(updates);
   };
 
   const handlePriorityChange = async (e) => {
@@ -193,6 +199,9 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
         <div className="text-sm text-orange-600 font-medium italic">
           ⏳ {formatTimeLeft(timeLeft)} left
         </div>
+      )}
+      {isTimerMissed(task) && (
+        <div className="text-sm text-red-600 font-semibold">⏰ Missed</div>
       )}
 
       {/* Timer control dropdown */}

@@ -3,6 +3,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { Link } from "react-router-dom";
 import { useSubtasks } from "../hooks/useSubtasks";
+import { isTimerMissed, getCompletionTimerOutcome } from "../utils/timerStatus";
 
 function TaskCard({
   task,
@@ -61,7 +62,12 @@ function TaskCard({
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     try {
-      await updateDoc(taskRef, { status: newStatus });
+      const updates = { status: newStatus };
+      if (newStatus === "done") {
+        const outcome = getCompletionTimerOutcome(task);
+        if (outcome) updates.timerOutcome = outcome;
+      }
+      await updateDoc(taskRef, updates);
       onStatusChange?.(task.id, newStatus);
     } catch (err) {
       console.error("Error updating status:", err);
@@ -128,6 +134,11 @@ function TaskCard({
       {timeLeft && (
         <div className="text-sm text-orange-600 mb-2 font-medium italic">
           ⏳ {formatTimeLeft(timeLeft)} left
+        </div>
+      )}
+      {isTimerMissed(task) && (
+        <div className="text-sm text-red-600 mb-2 font-semibold">
+          ⏰ Missed
         </div>
       )}
 
