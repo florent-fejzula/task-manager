@@ -7,6 +7,7 @@ import { useData } from "../context/DataContext";
 import TaskCard from "./TaskCard";
 import AddTaskForm from "./AddTaskForm";
 import { isTimerMissed } from "../utils/timerStatus";
+import { compareTasks } from "../utils/taskSort";
 
 function TaskList() {
   const { currentUser } = useAuth();
@@ -107,14 +108,7 @@ function TaskList() {
         let group = grouped[taskStatus];
         const displayStatus = statusLabels[taskStatus] || taskStatus;
 
-        group = [...group].sort((a, b) => {
-          const getWeight = (priority) =>
-            priority === "high" ? 0 : priority === "medium" ? 1 : 2;
-          return (
-            getWeight(a.priority || "medium") -
-            getWeight(b.priority || "medium")
-          );
-        });
+        group = [...group].sort(compareTasks);
 
         const isClosed = taskStatus === "done";
         const style = statusStyles[taskStatus];
