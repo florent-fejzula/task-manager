@@ -188,9 +188,8 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
       if (!lastMs) continue;
 
       const daysSince = (now - lastMs) / (1000 * 60 * 60 * 24);
-      const closedBeforeTodayTarget = lastMs < targetMs;
 
-      if (now >= targetMs && (daysSince >= intervalDays || closedBeforeTodayTarget)) {
+      if (now >= targetMs && daysSince >= intervalDays) {
         console.log("✅ Spawning new occurrence for:", task.title);
 
         const skDateLabel = new Intl.DateTimeFormat("en-US", {
@@ -283,7 +282,7 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
         console.log(
           `⏭️ Skipping ${task.title} (daysSince=${daysSince.toFixed(
             2,
-          )}, now<target=${now < targetMs}, closedBeforeTarget=${closedBeforeTodayTarget})`,
+          )}, now<target=${now < targetMs})`,
         );
       }
     }
