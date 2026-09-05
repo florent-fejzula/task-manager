@@ -212,7 +212,7 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
           onChange={handleCategoryChange}
           className="flex-1 min-w-[140px] border border-gray-300 rounded px-3 py-1"
         >
-          <option value="personal">🏠 Personal</option>
+          <option value="personal">Personal</option>
           <option value="work">💼 Work</option>
         </select>
       </div>

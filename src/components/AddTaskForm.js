@@ -58,7 +58,7 @@ function AddTaskForm({ onAdd }) {
         onChange={(e) => setCategory(e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-accent"
       >
-        <option value="personal">🏠 Personal</option>
+        <option value="personal">Personal</option>
         <option value="work">💼 Work</option>
       </select>
 

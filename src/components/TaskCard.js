@@ -108,9 +108,11 @@ function TaskCard({
       <div className="flex justify-between items-center mb-2">
         <Link to={`/task/${task.id}`} className="hover:underline flex items-center gap-2">
           <strong className="text-lg font-semibold">{task.title}</strong>
-          <span className="text-xs" title={task.category === "work" ? "Work" : "Personal"}>
-            {task.category === "work" ? "💼" : "🏠"}
-          </span>
+          {task.category === "work" && (
+            <span className="text-xs" title="Work">
+              💼
+            </span>
+          )}
         </Link>
         <select
           value={task.status}

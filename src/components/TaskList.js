@@ -122,7 +122,7 @@ function TaskList() {
         {[
           { value: "all", label: "All" },
           { value: "work", label: "💼 Work" },
-          { value: "personal", label: "🏠 Personal" },
+          { value: "personal", label: "Personal" },
         ].map(({ value, label }) => (
           <button
             key={value}
