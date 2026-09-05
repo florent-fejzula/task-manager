@@ -4,6 +4,7 @@ import { useState } from "react";
 function AddTaskForm({ onAdd }) {
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState("todo");
+  const [category, setCategory] = useState("personal");
 
   // 🔁 Recurring fields
   const [isRecurring, setIsRecurring] = useState(false);
@@ -17,6 +18,7 @@ function AddTaskForm({ onAdd }) {
     onAdd({
       title: title.trim(),
       status,
+      category,
       recurring: isRecurring,
       recurringInterval: isRecurring ? intervalDays : null,
       lastOccurrence: isRecurring ? Date.now() : null,
@@ -25,6 +27,7 @@ function AddTaskForm({ onAdd }) {
     // Reset form
     setTitle("");
     setStatus("todo");
+    setCategory("personal");
     setIsRecurring(false);
     setIntervalDays(7);
   };
@@ -48,6 +51,15 @@ function AddTaskForm({ onAdd }) {
         <option value="in-progress">In Progress</option>
         <option value="on-hold">On Hold</option>
         <option value="done">Closed</option>
+      </select>
+
+      <select
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-accent"
+      >
+        <option value="personal">🏠 Personal</option>
+        <option value="work">💼 Work</option>
       </select>
 
       {/* 🔁 Recurring UI */}

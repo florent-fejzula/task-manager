@@ -14,6 +14,19 @@ function TaskList() {
   const { tasks, settings, loading } = useData();
   const [showAddTask, setShowAddTask] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState(
+    () => localStorage.getItem("taskCategoryFilter") || "all"
+  );
+
+  const handleCategoryFilterChange = (value) => {
+    setCategoryFilter(value);
+    localStorage.setItem("taskCategoryFilter", value);
+  };
+
+  const visibleTasks =
+    categoryFilter === "all"
+      ? tasks
+      : tasks.filter((task) => (task.category || "personal") === categoryFilter);
 
   const grouped = {
     todo: [],
@@ -41,11 +54,11 @@ function TaskList() {
     done: { bg: "bg-slate-50/70", dot: "bg-slate-400" },
   };
 
-  tasks.forEach((task) => {
+  visibleTasks.forEach((task) => {
     grouped[task.status]?.push(task);
   });
 
-  const timerStats = tasks.reduce(
+  const timerStats = visibleTasks.reduce(
     (acc, task) => {
       if (task.timerOutcome === "on-time") acc.onTime += 1;
       else if (task.timerOutcome === "missed") acc.missed += 1;
@@ -62,6 +75,7 @@ function TaskList() {
       await addDoc(collection(db, "users", currentUser.uid, "tasks"), {
         title: newTask.title,
         status: newTask.status,
+        category: newTask.category || "personal",
         priority: "medium",
         createdAt: serverTimestamp(),
         subTasks: [],
@@ -102,6 +116,26 @@ function TaskList() {
           </button>
         )}
         {showAddTask && <AddTaskForm onAdd={handleAddTask} />}
+      </div>
+
+      <div className="flex justify-center gap-1 mb-6">
+        {[
+          { value: "all", label: "All" },
+          { value: "work", label: "💼 Work" },
+          { value: "personal", label: "🏠 Personal" },
+        ].map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => handleCategoryFilterChange(value)}
+            className={`px-3 py-1 rounded-full text-sm border transition ${
+              categoryFilter === value
+                ? "bg-accent text-white border-accent"
+                : "bg-white text-gray-600 border-gray-300 hover:border-accent"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {sortedStatuses.map((taskStatus) => {

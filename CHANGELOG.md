@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
+- Tasks can be tagged as 💼 Work or 🏠 Personal (defaults to Personal), with
+  an All/Work/Personal filter above the task list so unrelated life areas
+  don't stay mixed together; recurring spawns inherit their template's category
 - Recurring tasks auto-pause if 5 spawned occurrences in a row go
   untouched (still "in-progress", never closed or changed), with a push
   notification and a one-tap "Resume" button on the task, so a recurring

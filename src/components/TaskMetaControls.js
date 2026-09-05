@@ -88,6 +88,12 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
     onUpdate({ priority: newPriority });
   };
 
+  const handleCategoryChange = async (e) => {
+    const newCategory = e.target.value;
+    await updateDoc(taskRef, { category: newCategory });
+    onUpdate({ category: newCategory });
+  };
+
   const handleSetTimer = async (durationMs) => {
     const now = Date.now();
     await updateDoc(taskRef, {
@@ -199,6 +205,15 @@ function TaskMetaControls({ task, taskRef, onUpdate }) {
           <option value="high">High Priority</option>
           <option value="medium">Medium Priority</option>
           <option value="low">Low Priority</option>
+        </select>
+
+        <select
+          value={task.category || "personal"}
+          onChange={handleCategoryChange}
+          className="flex-1 min-w-[140px] border border-gray-300 rounded px-3 py-1"
+        >
+          <option value="personal">🏠 Personal</option>
+          <option value="work">💼 Work</option>
         </select>
       </div>
 

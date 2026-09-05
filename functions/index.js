@@ -202,6 +202,7 @@ exports.handleRecurringTasks = onSchedule("every 5 minutes", async () => {
         const newDoc = {
           title: `${task.title} (${skDateLabel})`,
           status: "in-progress",
+          category: task.category || "personal",
           priority: task.priority || "medium",
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           subTasks: Array.isArray(task.subTasks) ?
