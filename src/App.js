@@ -124,7 +124,7 @@ function App() {
                     <>
                       <header className="mb-10 text-center">
                         <h1 className="text-4xl font-bold tracking-tight">
-                          Task Manager 9.2
+                          Task Manager
                         </h1>
                         <div className="w-16 h-1 mx-auto mt-2 bg-accent rounded"></div>
                         <p className="mt-2 text-sm text-gray-500">
