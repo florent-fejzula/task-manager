@@ -111,24 +111,9 @@ function TaskList() {
 
   return (
     <div>
-      <div className="text-center mb-4">
-        {!showAddTask && (
-          <button
-            onClick={() => setShowAddTask(true)}
-            className="text-sm text-accent underline"
-          >
-            {showProjects ? "+ New Project" : "+ Add New Task"}
-          </button>
-        )}
-        {showAddTask && (
-          <AddTaskForm
-            onAdd={handleAddTask}
-            defaultCategory={showProjects ? "work" : "personal"}
-          />
-        )}
-      </div>
-
-      <div className="flex justify-center gap-1 mb-6">
+      {/* Filters and the add button share one row — two stacked rows of
+          chrome pushed the actual content most of a screen down. */}
+      <div className="mb-4 flex flex-wrap items-center justify-center gap-1">
         {[
           { value: "work", label: "💼 Projects" },
           { value: "personal", label: "Personal" },
@@ -146,7 +131,25 @@ function TaskList() {
             {label}
           </button>
         ))}
+
+        {!showAddTask && (
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="ml-2 text-sm text-accent underline"
+          >
+            {showProjects ? "+ New Project" : "+ Add New Task"}
+          </button>
+        )}
       </div>
+
+      {showAddTask && (
+        <div className="mb-6">
+          <AddTaskForm
+            onAdd={handleAddTask}
+            defaultCategory={showProjects ? "work" : "personal"}
+          />
+        </div>
+      )}
 
       {showProjects && <ProjectsDashboard projects={visibleTasks} />}
 

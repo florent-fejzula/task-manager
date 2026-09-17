@@ -79,7 +79,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-soft text-primary font-sans px-4 py-8 sm:py-12">
+      <div className="min-h-screen bg-soft text-primary font-sans px-4 py-4 sm:py-6">
         {/* Top header with hamburger */}
         <button
           onClick={() => setMenuOpen(true)}
@@ -122,19 +122,14 @@ function App() {
                 element={
                   currentUser ? (
                     <>
-                      <header className="mb-10 text-center">
-                        <h1 className="text-4xl font-bold tracking-tight">
+                      <header className="mb-5 text-center">
+                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                           Task Manager
                         </h1>
-                        <div className="w-16 h-1 mx-auto mt-2 bg-accent rounded"></div>
-                        <p className="mt-2 text-sm text-gray-500">
-                          Stay on top of your goals, one task at a time.
-                        </p>
+                        <div className="w-12 h-1 mx-auto mt-1.5 bg-accent rounded"></div>
                       </header>
 
-                      <div className="mt-10">
-                        <TaskList />
-                      </div>
+                      <TaskList />
                     </>
                   ) : (
                     <Navigate to="/login" />
