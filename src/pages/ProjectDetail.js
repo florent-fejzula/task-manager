@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { ChevronDown, ChevronUp, ArrowUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -45,6 +45,8 @@ function ProjectDetail() {
   const [loading, setLoading] = useState(!taskMap[id]);
   const [showDone, setShowDone] = useState(false);
   const [waitingDraft, setWaitingDraft] = useState("");
+  const [focusWaitingFor, setFocusWaitingFor] = useState(false);
+  const waitingForRef = useRef(null);
 
   const taskRef = useMemo(
     () => (currentUser ? doc(db, "users", currentUser.uid, "tasks", id) : null),
@@ -62,6 +64,15 @@ function ProjectDetail() {
 
   const waitingFor = task?.waitingFor;
   useEffect(() => setWaitingDraft(waitingFor || ""), [waitingFor]);
+
+  // Switching a project to Waiting/Blocked is useless without saying what
+  // it's waiting on, so drop the cursor straight into that field.
+  useEffect(() => {
+    if (focusWaitingFor && waitingForRef.current) {
+      waitingForRef.current.focus();
+      setFocusWaitingFor(false);
+    }
+  }, [focusWaitingFor]);
 
   const { toggleSubTask, deleteSubTask, addSubTask, promoteSubTask } = useSubtasks(
     taskRef,
@@ -110,6 +121,10 @@ function ProjectDetail() {
     }
 
     await patch(updates);
+
+    if (nextState === "waiting" || nextState === "blocked") {
+      setFocusWaitingFor(true);
+    }
   };
 
   const handleAddSubTask = async (e) => {
@@ -155,21 +170,26 @@ function ProjectDetail() {
           ))}
         </div>
 
-        {/* Progress */}
-        <div className="mb-5">
-          <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-            <span>Progress</span>
-            <span className="tabular-nums">
-              {done}/{total}
-            </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full bg-accent/60"
-              style={{ width: `${percent}%` }}
+        {/* Waiting on / blocked by — first, because for a waiting project
+            this and the follow-up date are the whole story. */}
+        {(state === "waiting" || state === "blocked") && (
+          <div className="mb-5">
+            <label className="mb-1 block text-sm font-medium">
+              {state === "waiting" ? "Waiting for" : "Blocked by"}
+            </label>
+            <input
+              ref={waitingForRef}
+              type="text"
+              value={waitingDraft}
+              onChange={(e) => setWaitingDraft(e.target.value)}
+              onBlur={() => patch({ waitingFor: waitingDraft.trim() || null })}
+              placeholder={
+                state === "waiting" ? "Contract signature" : "What's in the way?"
+              }
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-accent"
             />
           </div>
-        </div>
+        )}
 
         {/* When */}
         <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -199,24 +219,22 @@ function ProjectDetail() {
           )}
         </div>
 
-        {/* Waiting on / blocked by */}
-        {(state === "waiting" || state === "blocked") && (
-          <div className="mb-5">
-            <label className="mb-1 block text-sm font-medium">
-              {state === "waiting" ? "Waiting for" : "Blocked by"}
-            </label>
-            <input
-              type="text"
-              value={waitingDraft}
-              onChange={(e) => setWaitingDraft(e.target.value)}
-              onBlur={() => patch({ waitingFor: waitingDraft.trim() || null })}
-              placeholder={
-                state === "waiting" ? "Contract signature" : "What's in the way?"
-              }
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-accent"
+        {/* Tasks ticked off — deliberately not called "progress", since five
+            trivial steps and five hard ones count the same here. */}
+        <div className="mb-5">
+          <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+            <span>Tasks</span>
+            <span className="tabular-nums">
+              {done}/{total}
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full bg-accent/60"
+              style={{ width: `${percent}%` }}
             />
           </div>
-        )}
+        </div>
 
         {/* Next */}
         <div className="mb-5">
@@ -259,6 +277,7 @@ function ProjectDetail() {
                     type="checkbox"
                     checked={false}
                     onChange={() => toggleSubTask(sub.index)}
+                    className="shrink-0"
                   />
                   <span
                     className={`flex-grow ${
@@ -267,16 +286,17 @@ function ProjectDetail() {
                   >
                     {sub.title}
                   </span>
+                  {/* Promoting a step is a core move here, so it gets words
+                      rather than a bare arrow — tooltips do nothing on phones. */}
                   <button
                     onClick={() => promoteSubTask(sub.index)}
-                    title="Make this the next action"
-                    className="text-gray-300 hover:text-accent"
+                    className="shrink-0 whitespace-nowrap rounded border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-500 hover:border-accent hover:text-accent"
                   >
-                    <ArrowUp size={16} />
+                    ↑ Make next
                   </button>
                   <button
                     onClick={() => deleteSubTask(sub.index)}
-                    className="text-lg text-gray-300 hover:text-red-400"
+                    className="shrink-0 text-lg text-gray-300 hover:text-red-400"
                   >
                     ×
                   </button>

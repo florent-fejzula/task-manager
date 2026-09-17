@@ -101,12 +101,26 @@ export function isDueToday(task, today = todayISO()) {
   return task.dueDate === today;
 }
 
+// A waiting project whose follow-up date has arrived is your move again:
+// time to chase whoever you're waiting on. This is what makes "forget it
+// until the date" safe — the date coming round puts it back in front of you.
+export function isFollowUpDue(task, today = todayISO()) {
+  if (getProjectState(task) !== "waiting") return false;
+  return !!task.dueDate && task.dueDate <= today;
+}
+
 // Short human label for the "When" column. Waiting projects get a
 // "Follow up" prefix, because that date isn't a deadline — it's a reminder
 // to chase whoever you're waiting on.
 export function getDueLabel(task, today = todayISO()) {
   if (!task.dueDate) return null;
-  if (isOverdue(task, today)) return `Overdue · ${formatDueDate(task.dueDate, today)}`;
+
+  if (isOverdue(task, today)) {
+    // A waiting project's date isn't a missed deadline — it's a chase that
+    // came due, so don't scold with "Overdue" for someone else's delay.
+    const word = getProjectState(task) === "waiting" ? "Follow up" : "Overdue";
+    return `${word} · ${formatDueDate(task.dueDate, today)}`;
+  }
 
   const prefix = getProjectState(task) === "waiting" ? "Follow up " : "";
   if (task.dueDate === today) return `${prefix}Today`;
@@ -138,13 +152,14 @@ export function summarizeProjects(tasks, today = todayISO()) {
 // bottom because it isn't your move.
 export function getUrgencyRank(task, today = todayISO()) {
   const state = getProjectState(task);
-  if (state === "done") return 6;
+  if (state === "done") return 7;
   if (isOverdue(task, today)) return 0;
   if (state === "blocked") return 1;
-  if (state === "waiting") return 5;
-  if (!getNextAction(task)) return 2; // active but out of defined work
-  if (task.dueDate) return 3;
-  return 4;
+  if (isFollowUpDue(task, today)) return 2; // follow-up date is today
+  if (state === "waiting") return 6;
+  if (!getNextAction(task)) return 3; // active but out of defined work
+  if (task.dueDate) return 4;
+  return 5;
 }
 
 export function compareProjects(a, b, today = todayISO()) {
@@ -161,10 +176,22 @@ export function compareProjects(a, b, today = todayISO()) {
   return (a.title || "").localeCompare(b.title || "");
 }
 
-// The 2-3 things worth looking at the moment the app opens.
-export function getFocusItems(tasks, { limit = 3, today = todayISO() } = {}) {
-  return tasks
-    .filter((task) => getProjectState(task) !== "done")
-    .sort((a, b) => compareProjects(a, b, today))
-    .slice(0, limit);
+// What the app should show the moment it opens, split by whose move it is.
+// "doNext" is your responsibility; "waiting" is everyone else's, and can be
+// safely ignored until its follow-up date — at which point chasing it
+// becomes your move, so it crosses over into doNext.
+export function getFocusGroups(tasks, { limit = 3, today = todayISO() } = {}) {
+  const open = tasks.filter((task) => getProjectState(task) !== "done");
+  const stillWaiting = (task) =>
+    getProjectState(task) === "waiting" && !isFollowUpDue(task, today);
+
+  return {
+    doNext: open
+      .filter((task) => !stillWaiting(task))
+      .sort((a, b) => compareProjects(a, b, today))
+      .slice(0, limit),
+    waiting: open
+      .filter(stillWaiting)
+      .sort((a, b) => compareProjects(a, b, today)),
+  };
 }

@@ -4,6 +4,7 @@ import {
   getNextAction,
   getProgress,
   getProjectState,
+  isFollowUpDue,
   isOverdue,
 } from "../utils/projects";
 
@@ -36,10 +37,17 @@ function ProjectRow({ task, today }) {
         ⛔ Blocked{task.waitingFor ? `: ${task.waitingFor}` : ""}
       </span>
     );
+  } else if (isFollowUpDue(task, today)) {
+    // The follow-up date has arrived, so this is your move again.
+    line = (
+      <span className="font-medium text-red-600">
+        ⏰ Chase: {task.waitingFor || "follow up"}
+      </span>
+    );
   } else if (state === "waiting") {
     line = (
       <span className="text-amber-700">
-        ⏳ Waiting for: {task.waitingFor || "—"}
+        {task.waitingFor ? `⏳ Waiting for: ${task.waitingFor}` : "⏳ Waiting — what for?"}
       </span>
     );
   } else if (next) {
@@ -66,8 +74,9 @@ function ProjectRow({ task, today }) {
         >
           {task.title}
         </span>
+        {/* "Tasks" matters: 22/27 is steps ticked off, not % complete. */}
         <span className="shrink-0 text-xs tabular-nums text-gray-400">
-          {total > 0 ? `${done}/${total}` : ""}
+          {total > 0 ? `Tasks ${done}/${total}` : ""}
         </span>
       </div>
 

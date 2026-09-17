@@ -1,10 +1,11 @@
 import {
   compareProjects,
   getDueLabel,
-  getFocusItems,
+  getFocusGroups,
   getNextAction,
   getProgress,
   getProjectState,
+  isFollowUpDue,
   isOverdue,
   needsAction,
   summarizeProjects,
@@ -137,6 +138,11 @@ describe("due dates", () => {
     );
   });
 
+  it("calls a waiting project's passed date a follow-up, not a missed deadline", () => {
+    const waiting = project({ projectState: "waiting", dueDate: "2026-09-12" });
+    expect(getDueLabel(waiting, TODAY)).toBe("Follow up · Sep 12");
+  });
+
   it("returns nothing when no date is set", () => {
     expect(getDueLabel(project(), TODAY)).toBeNull();
   });
@@ -164,7 +170,21 @@ describe("summarizeProjects", () => {
   });
 });
 
-describe("compareProjects / getFocusItems", () => {
+describe("isFollowUpDue", () => {
+  it("is true once a waiting project's follow-up date arrives", () => {
+    const waiting = (dueDate) => project({ projectState: "waiting", dueDate });
+    expect(isFollowUpDue(waiting("2026-09-12"), TODAY)).toBe(true); // passed
+    expect(isFollowUpDue(waiting(TODAY), TODAY)).toBe(true); // today
+    expect(isFollowUpDue(waiting("2026-09-20"), TODAY)).toBe(false); // future
+    expect(isFollowUpDue(waiting(null), TODAY)).toBe(false); // no date set
+  });
+
+  it("only applies to waiting projects", () => {
+    expect(isFollowUpDue(project({ dueDate: "2026-09-12" }), TODAY)).toBe(false);
+  });
+});
+
+describe("compareProjects / getFocusGroups", () => {
   const overdue = project({ id: "overdue", title: "Overdue", dueDate: "2026-09-10" });
   const blocked = project({ id: "blocked", title: "Blocked", projectState: "blocked" });
   const stalled = project({ id: "stalled", title: "Stalled", subTasks: [] });
@@ -220,11 +240,33 @@ describe("compareProjects / getFocusItems", () => {
     );
   });
 
-  it("focuses on the top few open projects only", () => {
-    const items = getFocusItems([finished, waiting, dated, blocked, overdue], {
+  it("splits the focus box by whose move it is", () => {
+    const groups = getFocusGroups([finished, waiting, dated, blocked, overdue], {
       limit: 3,
       today: TODAY,
     });
-    expect(items.map((t) => t.id)).toEqual(["overdue", "blocked", "dated"]);
+
+    // Waiting is somebody else's move, so it never competes for a Do Next slot.
+    expect(groups.doNext.map((t) => t.id)).toEqual(["overdue", "blocked", "dated"]);
+    expect(groups.waiting.map((t) => t.id)).toEqual(["waiting"]);
+  });
+
+  it("moves a waiting project into Do Next once its follow-up comes due", () => {
+    const chase = project({
+      id: "chase",
+      projectState: "waiting",
+      dueDate: TODAY,
+      waitingFor: "Contract signature",
+    });
+
+    const groups = getFocusGroups([waiting, chase, dated], { today: TODAY });
+    expect(groups.doNext.map((t) => t.id)).toEqual(["chase", "dated"]);
+    expect(groups.waiting.map((t) => t.id)).toEqual(["waiting"]);
+  });
+
+  it("leaves the caller's array untouched", () => {
+    const input = [waiting, overdue];
+    getFocusGroups(input, { today: TODAY });
+    expect(input.map((t) => t.id)).toEqual(["waiting", "overdue"]);
   });
 });

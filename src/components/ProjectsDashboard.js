@@ -5,9 +5,10 @@ import ProjectRow from "./ProjectRow";
 import {
   compareProjects,
   getDueLabel,
-  getFocusItems,
+  getFocusGroups,
   getNextAction,
   getProjectState,
+  isFollowUpDue,
   isOverdue,
   summarizeProjects,
   todayISO,
@@ -32,23 +33,28 @@ function StatTile({ label, value, tone }) {
 
 // What to do right now, in three lines or fewer. Everything else on this
 // screen is context; this is the answer to "I just opened the app".
-function FocusList({ projects, today }) {
-  const focus = getFocusItems(projects, { limit: 3, today });
-  if (focus.length === 0) return null;
+function DoNextList({ projects, today }) {
+  if (projects.length === 0) {
+    return (
+      <p className="py-2 text-sm text-gray-500">
+        Nothing needs you right now — everything is waiting on someone else.
+      </p>
+    );
+  }
 
   return (
     <ol className="divide-y divide-black/5">
-      {focus.map((task, i) => {
+      {projects.map((task, i) => {
         const state = getProjectState(task);
         const next = getNextAction(task);
         const dueLabel = getDueLabel(task, today);
         const late = isOverdue(task, today);
 
         let action;
-        if (state === "blocked") {
+        if (isFollowUpDue(task, today)) {
+          action = `Chase: ${task.waitingFor || "follow up"}`;
+        } else if (state === "blocked") {
           action = `Unblock${task.waitingFor ? `: ${task.waitingFor}` : ""}`;
-        } else if (state === "waiting") {
-          action = `Waiting — ${task.waitingFor || "no reason set"}`;
         } else if (next) {
           action = next.title;
         } else {
@@ -68,11 +74,7 @@ function FocusList({ projects, today }) {
                 <span className="block truncate text-[11px] uppercase tracking-wide text-gray-400">
                   {task.title}
                 </span>
-                <span
-                  className={`block truncate text-sm font-medium ${
-                    state === "waiting" ? "text-amber-700" : ""
-                  }`}
-                >
+                <span className="block truncate text-sm font-medium">
                   {action}
                 </span>
               </span>
@@ -93,6 +95,35 @@ function FocusList({ projects, today }) {
   );
 }
 
+// Not your move. Kept visibly separate so it reads as "safe to ignore"
+// rather than as work you're failing to do.
+function WaitingList({ projects, today }) {
+  return (
+    <ul className="divide-y divide-black/5">
+      {projects.map((task) => (
+        <li key={task.id}>
+          <Link
+            to={`/project/${task.id}`}
+            className="flex items-baseline gap-3 py-2 hover:opacity-80"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[11px] uppercase tracking-wide text-gray-400">
+                {task.title}
+              </span>
+              <span className="block truncate text-sm text-gray-600">
+                {task.waitingFor || "Waiting — what for?"}
+              </span>
+            </span>
+            <span className="shrink-0 text-xs text-gray-500">
+              {getDueLabel(task, today) || "No follow-up date"}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ProjectsDashboard({ projects }) {
   const [showDone, setShowDone] = useState(false);
   const today = todayISO();
@@ -102,6 +133,7 @@ function ProjectsDashboard({ projects }) {
     .sort((a, b) => compareProjects(a, b, today));
   const done = projects.filter((task) => getProjectState(task) === "done");
   const summary = summarizeProjects(projects, today);
+  const focus = getFocusGroups(projects, { limit: 3, today });
 
   if (projects.length === 0) {
     return (
@@ -115,15 +147,24 @@ function ProjectsDashboard({ projects }) {
     <div className="space-y-6">
       {open.length > 0 && (
         <section className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-          <h2 className="mb-1 font-serif text-lg italic text-accent">Today / Next</h2>
-          <FocusList projects={projects} today={today} />
+          <h2 className="mb-1 font-serif text-lg italic text-accent">Do next</h2>
+          <DoNextList projects={focus.doNext} today={today} />
+
+          {focus.waiting.length > 0 && (
+            <div className="mt-3 border-t border-black/5 pt-2">
+              <h3 className="mb-1 text-[11px] uppercase tracking-wide text-gray-400">
+                Waiting ({focus.waiting.length})
+              </h3>
+              <WaitingList projects={focus.waiting} today={today} />
+            </div>
+          )}
         </section>
       )}
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatTile label="Active" value={summary.active} />
-        <StatTile label="Need action" value={summary.needAction} tone="amber" />
         <StatTile label="Waiting" value={summary.waiting} />
+        <StatTile label="Blocked" value={summary.blocked} tone="red" />
         <StatTile label="Overdue" value={summary.overdue} tone="red" />
       </section>
 
