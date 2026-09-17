@@ -1,10 +1,10 @@
 // AddTaskForm.js
 import { useState } from "react";
 
-function AddTaskForm({ onAdd }) {
+function AddTaskForm({ onAdd, defaultCategory = "personal" }) {
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState("todo");
-  const [category, setCategory] = useState("personal");
+  const [category, setCategory] = useState(defaultCategory);
 
   // 🔁 Recurring fields
   const [isRecurring, setIsRecurring] = useState(false);
@@ -27,7 +27,7 @@ function AddTaskForm({ onAdd }) {
     // Reset form
     setTitle("");
     setStatus("todo");
-    setCategory("personal");
+    setCategory(defaultCategory);
     setIsRecurring(false);
     setIntervalDays(7);
   };

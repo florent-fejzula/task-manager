@@ -16,6 +16,7 @@ import { requestNotificationPermission } from "./firebase/requestPermission";
 
 import TaskList from "./components/TaskList";
 import TaskDetail from "./components/TaskDetail";
+import ProjectDetail from "./pages/ProjectDetail";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -123,7 +124,7 @@ function App() {
                     <>
                       <header className="mb-10 text-center">
                         <h1 className="text-4xl font-bold tracking-tight">
-                          Task Manager 9.2
+                          Task Manager
                         </h1>
                         <div className="w-16 h-1 mx-auto mt-2 bg-accent rounded"></div>
                         <p className="mt-2 text-sm text-gray-500">
@@ -149,6 +150,10 @@ function App() {
                     <Navigate to="/login" />
                   )
                 }
+              />
+              <Route
+                path="/project/:id"
+                element={currentUser ? <ProjectDetail /> : <Navigate to="/login" />}
               />
               <Route
                 path="/settings"

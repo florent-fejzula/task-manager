@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import TaskCard from "./TaskCard";
 import AddTaskForm from "./AddTaskForm";
+import ProjectsDashboard from "./ProjectsDashboard";
 import { isTimerMissed } from "../utils/timerStatus";
 import { compareTasks } from "../utils/taskSort";
 
@@ -14,14 +15,18 @@ function TaskList() {
   const { tasks, settings, loading } = useData();
   const [showAddTask, setShowAddTask] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  // Work opens on the projects dashboard by default — that's the view meant
+  // to answer "what should I do right now" the moment the app opens.
   const [categoryFilter, setCategoryFilter] = useState(
-    () => localStorage.getItem("taskCategoryFilter") || "all"
+    () => localStorage.getItem("taskCategoryFilter") || "work"
   );
 
   const handleCategoryFilterChange = (value) => {
     setCategoryFilter(value);
     localStorage.setItem("taskCategoryFilter", value);
   };
+
+  const showProjects = categoryFilter === "work";
 
   const visibleTasks =
     categoryFilter === "all"
@@ -112,17 +117,22 @@ function TaskList() {
             onClick={() => setShowAddTask(true)}
             className="text-sm text-accent underline"
           >
-            + Add New Task
+            {showProjects ? "+ New Project" : "+ Add New Task"}
           </button>
         )}
-        {showAddTask && <AddTaskForm onAdd={handleAddTask} />}
+        {showAddTask && (
+          <AddTaskForm
+            onAdd={handleAddTask}
+            defaultCategory={showProjects ? "work" : "personal"}
+          />
+        )}
       </div>
 
       <div className="flex justify-center gap-1 mb-6">
         {[
-          { value: "all", label: "All" },
-          { value: "work", label: "💼 Work" },
+          { value: "work", label: "💼 Projects" },
           { value: "personal", label: "Personal" },
+          { value: "all", label: "All" },
         ].map(({ value, label }) => (
           <button
             key={value}
@@ -138,56 +148,61 @@ function TaskList() {
         ))}
       </div>
 
-      {sortedStatuses.map((taskStatus) => {
-        let group = grouped[taskStatus];
-        const displayStatus = statusLabels[taskStatus] || taskStatus;
+      {showProjects && <ProjectsDashboard projects={visibleTasks} />}
 
-        group = [...group].sort(compareTasks);
+      {!showProjects &&
+        sortedStatuses.map((taskStatus) => {
+          let group = grouped[taskStatus];
+          const displayStatus = statusLabels[taskStatus] || taskStatus;
 
-        const isClosed = taskStatus === "done";
-        const style = statusStyles[taskStatus];
+          group = [...group].sort(compareTasks);
 
-        return (
-          <div
-            key={taskStatus}
-            className={`mb-8 rounded-2xl p-4 ${style.bg}`}
-          >
+          const isClosed = taskStatus === "done";
+          const style = statusStyles[taskStatus];
+
+          return (
             <div
-              className={`text-accent font-serif italic text-lg mb-2 border-b border-black/5 pb-1 flex justify-between items-center cursor-pointer ${
-                isClosed ? "hover:opacity-80" : ""
-              }`}
-              onClick={() => isClosed && setShowClosed((prev) => !prev)}
+              key={taskStatus}
+              className={`mb-8 rounded-2xl p-4 ${style.bg}`}
             >
-              <span className="flex items-center gap-2">
-                <span className={`inline-block w-2 h-2 rounded-full ${style.dot}`} />
-                {displayStatus}
-                {isClosed && ` (${group.length})`}
-              </span>
-              {isClosed &&
-                (showClosed ? (
-                  <ChevronUp className="w-4 h-4 text-gray-500" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                ))}
-            </div>
-
-            {(!isClosed || showClosed) && (
-              <ul className="space-y-4">
-                {group.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    currentUser={currentUser}
-                    collapseSubtasks={settings?.collapseCompletedSubtasks}
+              <div
+                className={`text-accent font-serif italic text-lg mb-2 border-b border-black/5 pb-1 flex justify-between items-center cursor-pointer ${
+                  isClosed ? "hover:opacity-80" : ""
+                }`}
+                onClick={() => isClosed && setShowClosed((prev) => !prev)}
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${style.dot}`}
                   />
-                ))}
-              </ul>
-            )}
-          </div>
-        );
-      })}
+                  {displayStatus}
+                  {isClosed && ` (${group.length})`}
+                </span>
+                {isClosed &&
+                  (showClosed ? (
+                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  ))}
+              </div>
 
-      {(timerStats.onTime > 0 || timerStats.missed > 0) && (
+              {(!isClosed || showClosed) && (
+                <ul className="space-y-4">
+                  {group.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      currentUser={currentUser}
+                      collapseSubtasks={settings?.collapseCompletedSubtasks}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+
+      {!showProjects && (timerStats.onTime > 0 || timerStats.missed > 0) && (
         <div className="mt-2 text-center text-sm text-gray-500">
           Completed on time:{" "}
           <span className="font-semibold text-green-600">
