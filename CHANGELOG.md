@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com).
 ## [Unreleased]
 
 ### Added
+- Projects dashboard (the Work view): a "Today / Next" focus list, counts of
+  Active / Need action / Waiting / Overdue, and one compact row per project
+  showing its state, next action, date and progress — with the detailed
+  subtask view moved inside the project itself. Projects get a state
+  (Active / Waiting / Blocked / Done), an optional deadline or follow-up
+  date, and a "waiting for" note; the next action is simply the first
+  unfinished step, promotable with an arrow
 - Tasks can be tagged as 💼 Work or 🏠 Personal (defaults to Personal), with
   an All/Work/Personal filter above the task list so unrelated life areas
   don't stay mixed together; recurring spawns inherit their template's category

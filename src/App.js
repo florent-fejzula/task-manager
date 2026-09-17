@@ -16,6 +16,7 @@ import { requestNotificationPermission } from "./firebase/requestPermission";
 
 import TaskList from "./components/TaskList";
 import TaskDetail from "./components/TaskDetail";
+import ProjectDetail from "./pages/ProjectDetail";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -149,6 +150,10 @@ function App() {
                     <Navigate to="/login" />
                   )
                 }
+              />
+              <Route
+                path="/project/:id"
+                element={currentUser ? <ProjectDetail /> : <Navigate to="/login" />}
               />
               <Route
                 path="/settings"

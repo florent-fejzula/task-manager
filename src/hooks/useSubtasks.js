@@ -34,6 +34,25 @@ export function useSubtasks(taskRef, subTasks, onUpdate) {
     onUpdate(updated);
   };
 
+  // Makes a subtask the project's next action: moves it to the front and
+  // clears "in progress" on every other unfinished subtask, so exactly one
+  // thing reads as next (getNextAction prefers a started subtask over
+  // position, so leaving another one started would quietly outrank this).
+  const promoteSubTask = async (index) => {
+    const target = list[index];
+    if (!target) return;
+
+    const updated = [
+      { ...target },
+      ...list
+        .filter((_, i) => i !== index)
+        .map((sub) => (sub.done ? sub : { ...sub, inProgress: false })),
+    ];
+
+    await updateDoc(taskRef, { subTasks: updated });
+    onUpdate(updated);
+  };
+
   const addSubTask = async (title) => {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -42,5 +61,5 @@ export function useSubtasks(taskRef, subTasks, onUpdate) {
     onUpdate(updated);
   };
 
-  return { toggleSubTask, deleteSubTask, addSubTask };
+  return { toggleSubTask, deleteSubTask, addSubTask, promoteSubTask };
 }
